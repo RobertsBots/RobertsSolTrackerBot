@@ -1,46 +1,33 @@
-import telegram
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
 import os
+import telegram
+from telegram import InputFile
+from telegram.ext import Updater, CommandHandler
+import logging
 
-TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = os.getenv("CHANNEL_ID")
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
 
 bot = telegram.Bot(token=TOKEN)
 
-wallets = {}
-
-def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text("Willkommen beim RobertsSolTrackerBot!")
-
-def add_wallet(update: Update, context: CallbackContext) -> None:
-    if len(context.args) != 2:
-        update.message.reply_text("Verwendung: /add <WALLET> <TAG>")
-        return
-    wallet, tag = context.args
-    wallets[wallet] = tag
-    update.message.reply_text(f"Wallet {wallet} mit Tag '{tag}' hinzugefügt.")
-
-def list_wallets(update: Update, context: CallbackContext) -> None:
-    if not wallets:
-        update.message.reply_text("Keine Wallets getrackt.")
-        return
+# Beispielkommando
+def list_wallets(update, context):
     text = "📄 Getrackte Wallets:
-"
-    for wallet, tag in wallets.items():
-        text += f"- {wallet} ({tag})\n"
-    update.message.reply_text(text)
+1. BeispielWallet123
+2. BeispielWallet456"
+    context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+
+def start(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Willkommen beim Solana Wallet Tracker Bot!")
 
 def main():
-    updater = Updater(TOKEN)
+    updater = Updater(token=TOKEN, use_context=True)
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("add", add_wallet))
     dp.add_handler(CommandHandler("list", list_wallets))
 
     updater.start_polling()
     updater.idle()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
