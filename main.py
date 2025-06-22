@@ -35,12 +35,13 @@ async def telegram_webhook(req: Request):
         command_parts = text.strip().split(" ")
 
         if text.startswith("/start") or text.startswith("/help"):
-            reply = "👋 Willkommen beim RobertsSolTrackerBot!
+            reply = "👋 Willkommen beim RobertsSolTrackerBot!"
 
-Verfügbare Befehle:
-"                     "/add <WALLET> <TAG> ➕ Wallet hinzufügen
-"                     "/rm <WALLET> 🗑️ Wallet entfernen
-"                     "/list 📋 Liste der Wallets"
+Verfügbare Befehle:   """
+"                     /add <WALLET> <TAG> ➕ Wallet hinzufügen
+"                     /rm <WALLET> 🗑️ Wallet entfernen
+"                     /list 📋 Liste der Wallets
+                      """
         elif text.startswith("/add") and len(command_parts) == 3:
             wallet, tag = command_parts[1], command_parts[2]
             wallets = load_wallets()
@@ -59,12 +60,12 @@ Verfügbare Befehle:
         elif text.startswith("/list"):
             wallets = load_wallets()
             if wallets:
-                text = "📋 <b>Getrackte Wallets</b>
+                text = """📋 <b>Getrackte Wallets</b>
 
-"
+"""
                 for w, t in wallets.items():
-                    text += f"• <code>{w}</code> – <b>{t}</b>
-"
+                    text += f"""• <code>{w}</code> – <b>{t}</b>
+"""
                 reply = text
             else:
                 reply = "ℹ️ Es sind derzeit keine Wallets getrackt."
