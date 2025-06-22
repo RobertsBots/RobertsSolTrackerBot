@@ -49,19 +49,17 @@ async def telegram_webhook(req: Request):
 
     elif text.startswith("/list"):
         if tracked_wallets:
-            message = "📋 <b>Liste der getrackten Wallets:</b>"
-"
+            message = "📋 <b>Liste der getrackten Wallets:</b>\n"
             for wallet, tag in tracked_wallets.items():
-                message += f"• {wallet} – <i>{tag}</i>
-"
+                message += f"• <code>{wallet}</code> – <i>{tag}</i>\n"
         else:
             message = "ℹ️ Keine Wallets getrackt."
         await send_message(chat_id, message)
 
     else:
-        await send_message(chat_id, "🤖 Befehle:
-/add <WALLET> <TAG>
-/rm <WALLET>
-/list")
+        await send_message(chat_id, """🤖 Befehle:
+<code>/add WALLET TAG</code>
+<code>/rm WALLET</code>
+<code>/list</code>""")
 
     return {"ok": True}
