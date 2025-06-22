@@ -1,0 +1,4 @@
+[tool.poetry]
+name = "roberts-sol-tracker-bot"
+version = "0.1.0"
+description = "Solana Wallet Telegram Bot"
