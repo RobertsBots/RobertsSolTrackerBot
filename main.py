@@ -49,11 +49,12 @@ async def telegram_webhook(req: Request):
 
     elif text.startswith("/list"):
         if tracked_wallets:
-            message = (
-    "📋 <b>Liste der getrackten Wallets:</b>\n"
-    "🔹 wallet1\n"
-    "🔹 wallet2"
-)
+            message = """
+📋 <b>Liste der getrackten Wallets:</b>
+
+🟢 wallet1 — Tag1  
+🟡 wallet2 — Tag2  
+"""
 "
             for wallet, tag in tracked_wallets.items():
                 message += f"• {wallet} – <i>{tag}</i>
