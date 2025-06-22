@@ -1,4 +1,26 @@
-# ... (alle bisherigen Imports & Variablen bleiben gleich)
+import os
+import asyncio
+import aiohttp
+from fastapi import FastAPI, Request
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.constants import ParseMode
+
+# FastAPI App definieren – wichtig für Railway!
+app = FastAPI()
+
+# Umgebungsvariablen lesen
+bot_token = os.getenv("BOT_TOKEN")
+channel_id = os.getenv("CHANNEL_ID")
+bot = Bot(token=bot_token)
+
+# Getrackte Wallets und PnL-Werte
+tracked_wallets = {}  # wallet -> tag
+manual_profits = {}   # wallet -> float
+winloss_stats = {}    # wallet -> {"win": int, "loss": int}
+
+# Nachricht senden
+async def send_message(chat_id: str, text: str):
+    await bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML)
 
 # Inline-Tastatur erzeugen für /start
 def get_main_buttons():
@@ -8,6 +30,11 @@ def get_main_buttons():
         [InlineKeyboardButton("🗑️ Wallet entfernen", callback_data="rm_list")],
         [InlineKeyboardButton("➕ Profit eintragen", callback_data="profit_help")]
     ])
+
+# Bot startet
+@app.on_event("startup")
+async def startup_event():
+    await send_message(channel_id, "✅ <b>RobertsSolTrackerBot ist bereit!</b>")
 
 # Telegram Webhook-Handler
 @app.post("/")
@@ -25,15 +52,6 @@ async def telegram_webhook(req: Request):
             await handle_list(chat_id)
         elif data_id == "profit_help":
             await send_message(chat_id, "➕ Um Profit hinzuzufügen:\n<code>/profit WALLET +/-BETRAG</code>")
-        elif data_id.startswith("rm_wallet_"):
-            wallet = data_id.replace("rm_wallet_", "")
-            if wallet in tracked_wallets:
-                del tracked_wallets[wallet]
-                manual_profits.pop(wallet, None)
-                winloss_stats.pop(wallet, None)
-                await send_message(chat_id, f"🗑️ Wallet <code>{wallet}</code> entfernt.")
-            else:
-                await send_message(chat_id, "❌ Wallet nicht gefunden.")
         elif data_id == "rm_list":
             if not tracked_wallets:
                 await send_message(chat_id, "ℹ️ Keine Wallets zum Entfernen.")
@@ -48,6 +66,15 @@ async def telegram_webhook(req: Request):
                 reply_markup=InlineKeyboardMarkup(buttons),
                 parse_mode=ParseMode.HTML
             )
+        elif data_id.startswith("rm_wallet_"):
+            wallet = data_id.replace("rm_wallet_", "")
+            if wallet in tracked_wallets:
+                del tracked_wallets[wallet]
+                manual_profits.pop(wallet, None)
+                winloss_stats.pop(wallet, None)
+                await send_message(chat_id, f"🗑️ Wallet <code>{wallet}</code> entfernt.")
+            else:
+                await send_message(chat_id, "❌ Wallet nicht gefunden.")
         return {"ok": True}
 
     message = data.get("message", {})
@@ -87,7 +114,6 @@ async def telegram_webhook(req: Request):
             else:
                 await send_message(chat_id, "❌ Wallet nicht gefunden.")
         else:
-            # Trigger Inline-Auswahl bei /rm ohne Wallet
             if not tracked_wallets:
                 await send_message(chat_id, "ℹ️ Keine Wallets zum Entfernen.")
             else:
@@ -129,5 +155,22 @@ async def telegram_webhook(req: Request):
 
     return {"ok": True}
 
-# Helferfunktion für /list bleibt gleich
-# ... (restlicher Code bleibt gleich)
+# Helferfunktion für /list
+async def handle_list(chat_id: str):
+    if not tracked_wallets:
+        await send_message(chat_id, "ℹ️ Keine Wallets getrackt.")
+        return
+
+    msg = "📋 <b>Getrackte Wallets:</b>\n"
+    for idx, (wallet, tag) in enumerate(tracked_wallets.items(), 1):
+        bird_link = f"https://birdeye.so/address/{wallet}?chain=solana"
+        profit = manual_profits.get(wallet, 0)
+        stats = winloss_stats.get(wallet, {"win": 0, "loss": 0})
+        win, loss = stats["win"], stats["loss"]
+
+        wr = f"<b>WR(</b><span style='color:green'>{win}</span>/<span style='color:red'>{loss}</span><b>)</b>"
+        pnl = f"<b> | PnL(</b><span style='color:{'green' if profit >= 0 else 'red'}'>{profit:.2f} sol</span><b>)</b>"
+
+        msg += f"\n<b>{idx}.</b> <a href='{bird_link}'>{wallet}</a> – <i>{tag}</i>\n{wr}{pnl}\n"
+
+    await send_message(chat_id, msg)
