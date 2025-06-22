@@ -10,19 +10,21 @@ from telegram.ext import (
     MessageHandler, filters, ContextTypes, ConversationHandler
 )
 
-# === ENV & Global ===
+# === ENV & App Setup ===
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 WEBHOOK_PATH = f"/{BOT_TOKEN}"
-WEBHOOK_URL = f"https://roberts-sol-tracker-bot-production.up.railway.app{WEBHOOK_PATH}"
+WEBHOOK_URL = f"https://robertssoltrackerbot-production.up.railway.app{WEBHOOK_PATH}"
 
 app = FastAPI()
 application = Application.builder().token(BOT_TOKEN).build()
+
+# === Memory Stores ===
 WALLETS = {}
 SMART_MODE = {"mode": None, "wr": 60, "roi": 10}
 WAITING_FOR_WR, WAITING_FOR_ROI = range(2)
 
-# === START ===
+# === /start ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📮 Wallet hinzufügen", callback_data="add_wallet")],
@@ -34,7 +36,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("👋 Willkommen beim Solana Wallet Tracker!\nWähle unten eine Funktion aus:", reply_markup=reply_markup)
 
-# === BUTTON CALLBACKS ===
+# === Button Handler ===
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -53,22 +55,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("⚡ Scalping", callback_data="mode_scalping")],
             [InlineKeyboardButton("🛠️ Own", callback_data="mode_own")]
         ]
-        markup = InlineKeyboardMarkup(keyboard)
-        await query.message.reply_text("Wähle einen SmartFinder-Modus:", reply_markup=markup)
+        await query.message.reply_text("Wähle einen SmartFinder-Modus:", reply_markup=InlineKeyboardMarkup(keyboard))
     elif query.data == "mode_moonbags":
         SMART_MODE["mode"] = "moonbags"
         SMART_MODE["wr"], SMART_MODE["roi"] = 75, 25
-        await query.message.reply_text("✅ Moonbags-Suche aktiviert!")
+        await query.message.reply_text("✅ Moonbags-Suche aktiviert.")
     elif query.data == "mode_scalping":
         SMART_MODE["mode"] = "scalping"
         SMART_MODE["wr"], SMART_MODE["roi"] = 60, 5
-        await query.message.reply_text("✅ Scalping-Suche aktiviert!")
+        await query.message.reply_text("✅ Scalping-Suche aktiviert.")
     elif query.data == "mode_own":
-        SMART_MODE["mode"] = "own"
-        await query.message.reply_text("Gib gewünschte Mindest-Winrate (%) ein:")
+        await own(query, context)
         return WAITING_FOR_WR
 
-# === /add ===
+# === Wallet Befehle ===
 async def add_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         wallet, tag = context.args
@@ -77,7 +77,6 @@ async def add_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         await update.message.reply_text("❌ Nutze: /add <wallet> <tag>")
 
-# === /rm ===
 async def rm_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         wallet = context.args[0]
@@ -89,7 +88,6 @@ async def rm_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         await update.message.reply_text("❌ Nutze: /rm <wallet>")
 
-# === /list ===
 async def list_wallets(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = "📋 Getrackte Wallets:\n\n"
     for w, d in WALLETS.items():
@@ -100,7 +98,6 @@ async def list_wallets(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += f"• {w} [{d['tag']}]\n{wr_str} | PnL: {pnl_str}\n\n"
     await update.message.reply_text(text or "Keine Wallets.", parse_mode=ParseMode.HTML)
 
-# === /profit ===
 async def profit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         wallet = context.args[0]
@@ -119,50 +116,54 @@ async def profit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         await update.message.reply_text("❌ Nutze: /profit <wallet> <+/-betrag>")
 
-# === /own Dialog ===
-async def own_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    SMART_MODE["mode"] = "own"
-    await update.message.reply_text("🛠️ Gib deine gewünschte Mindest-Winrate (%) ein:")
+# === /own Conversation ===
+async def own(update_or_query, context: ContextTypes.DEFAULT_TYPE):
+    if hasattr(update_or_query, 'message'):  # /own via Command
+        await update_or_query.message.reply_text("🛠️ Gib deine gewünschte Mindest-Winrate (%) ein:")
+    else:  # /own via Button (CallbackQuery)
+        await update_or_query.message.reply_text("🛠️ Gib deine gewünschte Mindest-Winrate (%) ein:")
     return WAITING_FOR_WR
 
 async def own_wr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         wr = int(update.message.text)
-        SMART_MODE["wr"] = wr
-        await update.message.reply_text("✅ Jetzt gewünschte Mindest-ROI (%) eingeben:")
+        context.user_data["own_wr"] = wr
+        await update.message.reply_text("📈 Gib jetzt deinen gewünschten Mindest-ROI (%) ein:")
         return WAITING_FOR_ROI
-    except:
-        await update.message.reply_text("❌ Ungültig. Gib bitte eine Zahl ein.")
+    except ValueError:
+        await update.message.reply_text("❌ Bitte gib eine Zahl ein:")
         return WAITING_FOR_WR
 
 async def own_roi(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         roi = int(update.message.text)
+        wr = context.user_data.get("own_wr", 0)
+        SMART_MODE["mode"] = "own"
+        SMART_MODE["wr"] = wr
         SMART_MODE["roi"] = roi
-        await update.message.reply_text(f"✅ Eigene Suche aktiviert: WR ≥ {SMART_MODE['wr']}%, ROI ≥ {SMART_MODE['roi']}%")
+        await update.message.reply_text(f"✅ Eigene Filter aktiviert: WR ≥ {wr}% | ROI ≥ {roi}%")
         return ConversationHandler.END
-    except:
-        await update.message.reply_text("❌ Ungültig. Gib bitte eine Zahl ein.")
+    except ValueError:
+        await update.message.reply_text("❌ Bitte gib eine gültige Zahl für ROI ein:")
         return WAITING_FOR_ROI
 
-# === HANDLER-SETUP ===
+# === Handler Registrieren ===
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("add", add_wallet))
 application.add_handler(CommandHandler("rm", rm_wallet))
 application.add_handler(CommandHandler("list", list_wallets))
 application.add_handler(CommandHandler("profit", profit))
-application.add_handler(CommandHandler("own", own_start))
 application.add_handler(CallbackQueryHandler(button_handler))
 application.add_handler(ConversationHandler(
-    entry_points=[CommandHandler("own", own_start)],
+    entry_points=[CommandHandler("own", own)],
     states={
         WAITING_FOR_WR: [MessageHandler(filters.TEXT & ~filters.COMMAND, own_wr)],
-        WAITING_FOR_ROI: [MessageHandler(filters.TEXT & ~filters.COMMAND, own_roi)]
+        WAITING_FOR_ROI: [MessageHandler(filters.TEXT & ~filters.COMMAND, own_roi)],
     },
     fallbacks=[]
 ))
 
-# === WEBHOOK ===
+# === Webhook Endpoint ===
 @app.post(WEBHOOK_PATH)
 async def telegram_webhook(req: Request):
     data = await req.json()
@@ -174,14 +175,14 @@ async def startup_event():
     await application.bot.set_webhook(url=WEBHOOK_URL)
     await application.initialize()
     await application.start()
-    print("Bot gestartet.")
+    print("✅ Bot gestartet und Webhook gesetzt.")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     await application.stop()
     await application.shutdown()
 
-# === RUN ===
+# === Lokaler Start (nicht nötig bei Railway) ===
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000)
