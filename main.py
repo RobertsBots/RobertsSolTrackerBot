@@ -57,7 +57,7 @@ async def list_wallets(update: Update, context):
     if not wallets:
         await update.message.reply_text("📭 Keine Wallets eingetragen.")
         return
-    text = "📋 <b>Getrackte Wallets</b>
+    text = "📋 <b>Getrackte Wallets</b>"
 "
     for w, t in wallets.items():
         text += f"🔹 <code>{w}</code> — {t}
