@@ -27,33 +27,29 @@ def get_main_buttons():
     ])
 
 async def fetch_smart_wallets():
-    url = "https://api.dexscreener.com/latest/dex/pairs/solana"
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as res:
-                data = await res.json()
-                # HIER kannst du eine echte Quelle ersetzen – Beispiel:
-                return [
-                    {"wallet": "4Z2bQnqN...Dummy", "winrate": 64, "roi": 18},
-                    {"wallet": "7T29AKxX...Demo", "winrate": 72, "roi": 27}
-                ]
-    except Exception:
-        return []
+    # Hier kannst du später echte Dune API oder Scraper einbauen
+    return [
+        {"wallet": "8abcDummyWallet1", "winrate": 64, "roi": 17},
+        {"wallet": "9xyzSmartWallet2", "winrate": 72, "roi": 29}
+    ]
 
 async def wallet_discovery_loop():
     await asyncio.sleep(5)
     while True:
-        smart_wallets = await fetch_smart_wallets()
-        for entry in smart_wallets:
-            wallet = entry["wallet"]
-            if wallet not in tracked_wallets:
-                tag = "🚀 AutoDetected"
-                tracked_wallets[wallet] = tag
-                winloss_stats[wallet] = {"win": 0, "loss": 0}
-                await send_message(
-                    channel_id,
-                    f"🧠 Neue Smart Wallet entdeckt:\n<code>{wallet}</code> – WR: {entry['winrate']} % | ROI: {entry['roi']} %\n<a href='https://birdeye.so/address/{wallet}?chain=solana'>📈 Birdeye öffnen</a>"
-                )
+        try:
+            smart_wallets = await fetch_smart_wallets()
+            for entry in smart_wallets:
+                wallet = entry["wallet"]
+                if wallet not in tracked_wallets:
+                    tag = "🚀 AutoDetected"
+                    tracked_wallets[wallet] = tag
+                    winloss_stats[wallet] = {"win": 0, "loss": 0}
+                    await send_message(
+                        channel_id,
+                        f"🧠 Neue Smart Wallet entdeckt:\n<code>{wallet}</code> – WR: {entry['winrate']} % | ROI: {entry['roi']} %\n<a href='https://birdeye.so/address/{wallet}?chain=solana'>📈 Birdeye öffnen</a>"
+                    )
+        except Exception as e:
+            await send_message(channel_id, f"❌ Fehler beim Wallet-Scan: {e}")
         await asyncio.sleep(1800)
 
 @app.on_event("startup")
@@ -173,7 +169,7 @@ async def telegram_webhook(req: Request):
     else:
         await send_message(chat_id, "❌ Befehl existiert nicht. Tippe <code>/start</code> für Hilfe.")
 
-    return {"ok": True"}
+    return {"ok": True}
 
 async def handle_list(chat_id: str):
     if not tracked_wallets:
