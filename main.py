@@ -2,7 +2,7 @@ import os
 import asyncio
 import aiohttp
 from fastapi import FastAPI, Request
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.constants import ParseMode
 
 app = FastAPI()
@@ -27,10 +27,10 @@ def get_main_buttons():
     ])
 
 async def fetch_smart_wallets():
-    # Hier kannst du später echte Dune API oder Scraper einbauen
+    # Dummy Wallets – hier kannst du später eine echte API wie Dune einbauen
     return [
-        {"wallet": "8abcDummyWallet1", "winrate": 64, "roi": 17},
-        {"wallet": "9xyzSmartWallet2", "winrate": 72, "roi": 29}
+        {"wallet": "9xyzSmartWallet1", "winrate": 68, "roi": 24},
+        {"wallet": "4abcNewWallet2", "winrate": 70, "roi": 30}
     ]
 
 async def wallet_discovery_loop():
@@ -55,6 +55,13 @@ async def wallet_discovery_loop():
 @app.on_event("startup")
 async def startup_event():
     await send_message(channel_id, "✅ <b>RobertsSolTrackerBot ist bereit!</b>")
+    await bot.set_my_commands([
+        BotCommand("start", "Startmenü anzeigen"),
+        BotCommand("add", "Wallet hinzufügen"),
+        BotCommand("rm", "Wallet entfernen"),
+        BotCommand("profit", "Profit eintragen"),
+        BotCommand("list", "Alle Wallets anzeigen")
+    ])
     asyncio.create_task(wallet_discovery_loop())
 
 @app.post("/")
