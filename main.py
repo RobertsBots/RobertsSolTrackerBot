@@ -1,71 +1,80 @@
-import json
 import os
-import uvicorn
+import json
+import time
+import asyncio
+import logging
 from fastapi import FastAPI, Request
-from utils import load_wallets, save_wallets
-
+from fastapi.responses import JSONResponse
+from telegram import Bot, Update
+from telegram.constants import ParseMode
+from telegram.ext import Application, CommandHandler
 import httpx
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = os.getenv("CHANNEL_ID")
-
 app = FastAPI()
+TELEGRAM_TOKEN = os.environ.get("BOT_TOKEN")
+CHANNEL_ID = os.environ.get("CHANNEL_ID")
+bot = Bot(token=TELEGRAM_TOKEN)
+
+wallets = {}
 
 @app.post("/")
 async def telegram_webhook(req: Request):
     data = await req.json()
-    message = data.get("message", {})
-    text = message.get("text", "")
-    chat_id = message.get("chat", {}).get("id")
+    update = Update.de_json(data, bot)
+    await application.update_queue.put(update)
+    return JSONResponse(content={"ok": True})
 
-    if not text.startswith("/"):
-        return {"ok": True}
+async def send_message(text):
+    await bot.send_message(chat_id=CHANNEL_ID, text=text, parse_mode=ParseMode.HTML)
 
-    if text.startswith("/add "):
-        parts = text.split()
-        if len(parts) != 3:
-            await send_message(chat_id, "❌ Usage: /add <wallet> <tag>")
-        else:
-            wallet, tag = parts[1], parts[2]
-            wallets = load_wallets()
-            wallets[wallet] = tag
-            save_wallets(wallets)
-            await send_message(chat_id, f"✅ Wallet {wallet} mit Tag '{tag}' hinzugefügt.")
+async def check_wallets_loop():
+    while True:
+        for wallet, tag in wallets.items():
+            await send_message(f"🧾 Wallet: <code>{wallet}</code> — {tag}")
+            # Beispiel für echte API-Abfragen oder Logs
+        await asyncio.sleep(60)
 
-    elif text.startswith("/rm "):
-        parts = text.split()
-        if len(parts) != 2:
-            await send_message(chat_id, "❌ Usage: /rm <wallet>")
-        else:
-            wallet = parts[1]
-            wallets = load_wallets()
-            if wallet in wallets:
-                tag = wallets.pop(wallet)
-                save_wallets(wallets)
-                await send_message(chat_id, f"🗑️ Wallet {wallet} (Tag: '{tag}') entfernt.")
-            else:
-                await send_message(chat_id, f"⚠️ Wallet {wallet} nicht gefunden.")
+async def add_wallet(update: Update, context):
+    if len(context.args) < 2:
+        await update.message.reply_text("⚠️ Nutzung: /add <wallet> <tag>")
+        return
+    wallet, tag = context.args[0], " ".join(context.args[1:])
+    wallets[wallet] = tag
+    await update.message.reply_text(f"✅ Wallet hinzugefügt: <code>{wallet}</code> — {tag}", parse_mode=ParseMode.HTML)
 
-    elif text.startswith("/list"):
-        wallets = load_wallets()
-        if not wallets:
-            await send_message(chat_id, "📭 Keine Wallets gespeichert.")
-        else:
-            msg = "📋 Aktuell getrackte Wallets:
+async def remove_wallet(update: Update, context):
+    if len(context.args) != 1:
+        await update.message.reply_text("⚠️ Nutzung: /rm <wallet>")
+        return
+    wallet = context.args[0]
+    if wallet in wallets:
+        del wallets[wallet]
+        await update.message.reply_text(f"🗑️ Wallet entfernt: <code>{wallet}</code>", parse_mode=ParseMode.HTML)
+    else:
+        await update.message.reply_text("❌ Wallet nicht gefunden.")
 
+async def list_wallets(update: Update, context):
+    if not wallets:
+        await update.message.reply_text("📭 Keine Wallets eingetragen.")
+        return
+    text = "📋 <b>Getrackte Wallets</b>
 "
-            for wallet, tag in wallets.items():
-                msg += f"🔹 {wallet} → {tag}
+    for w, t in wallets.items():
+        text += f"🔹 <code>{w}</code> — {t}
 "
-            await send_message(chat_id, msg)
+    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
-    return {"ok": True}
+application = Application.builder().token(TELEGRAM_TOKEN).build()
+application.add_handler(CommandHandler("add", add_wallet))
+application.add_handler(CommandHandler("rm", remove_wallet))
+application.add_handler(CommandHandler("list", list_wallets))
 
-async def send_message(chat_id, text):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text}
-    async with httpx.AsyncClient() as client:
-        await client.post(url, json=payload)
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(application.initialize())
+    asyncio.create_task(application.start())
+    asyncio.create_task(check_wallets_loop())
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8080)
+@app.on_event("shutdown")
+async def shutdown_event():
+    await application.stop()
