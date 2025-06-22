@@ -1,77 +1,67 @@
-
-from fastapi import FastAPI, Request
-import httpx
 import os
-import json
+import asyncio
+import aiohttp
+from fastapi import FastAPI, Request
+from telegram import Bot
+from telegram.constants import ParseMode
 
 app = FastAPI()
+bot_token = os.getenv("BOT_TOKEN")
+channel_id = os.getenv("CHANNEL_ID")
+bot = Bot(token=bot_token)
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = os.getenv("CHANNEL_ID")
-API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
+tracked_wallets = {}
 
-wallets_file = "wallets.json"
+@app.on_event("startup")
+async def startup_event():
+    await send_message(channel_id, "👋 Willkommen beim RobertsSolTrackerBot!")
 
-def load_wallets():
-    if not os.path.exists(wallets_file):
-        return {}
-    with open(wallets_file, "r") as f:
-        return json.load(f)
-
-def save_wallets(wallets):
-    with open(wallets_file, "w") as f:
-        json.dump(wallets, f)
+async def send_message(chat_id: str, text: str):
+    await bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML)
 
 @app.post("/")
-async def webhook(req: Request):
+async def telegram_webhook(req: Request):
     data = await req.json()
-    chat_id = data["message"]["chat"]["id"]
-    text = data["message"].get("text", "")
-    command_parts = text.strip().split(" ")
+    message = data.get("message", {})
+    chat_id = str(message.get("chat", {}).get("id", ""))
+    text = message.get("text", "")
 
-    if text.startswith("/start") or text.startswith("/help"):
-        await send_message(chat_id, "👋 Willkommen beim RobertsSolTrackerBot!
-
-"
-                                    "Verfügbare Befehle:
-"
-                                    "/add <WALLET> <TAG> ➕ Wallet hinzufügen
-"
-                                    "/rm <WALLET> 🗑️ Wallet entfernen
-"
-                                    "/list 📋 Liste der Wallets")
-    elif text.startswith("/add") and len(command_parts) == 3:
-        wallet, tag = command_parts[1], command_parts[2]
-        wallets = load_wallets()
-        wallets[wallet] = tag
-        save_wallets(wallets)
-        await send_message(chat_id, f"✅ Wallet <code>{wallet}</code> mit Tag <b>{tag}</b> hinzugefügt.")
-    elif text.startswith("/rm") and len(command_parts) == 2:
-        wallet = command_parts[1]
-        wallets = load_wallets()
-        if wallet in wallets:
-            del wallets[wallet]
-            save_wallets(wallets)
-            await send_message(chat_id, f"🗑️ Wallet <code>{wallet}</code> wurde entfernt.")
+    if text.startswith("/add"):
+        parts = text.split()
+        if len(parts) == 3:
+            wallet, tag = parts[1], parts[2]
+            tracked_wallets[wallet] = tag
+            await send_message(chat_id, f"✅ Wallet <b>{wallet}</b> mit Tag <b>{tag}</b> hinzugefügt.")
         else:
-            await send_message(chat_id, "⚠️ Wallet nicht gefunden.")
+            await send_message(chat_id, "⚠️ Format: /add <WALLET> <TAG>")
+
+    elif text.startswith("/rm"):
+        parts = text.split()
+        if len(parts) == 2:
+            wallet = parts[1]
+            if wallet in tracked_wallets:
+                del tracked_wallets[wallet]
+                await send_message(chat_id, f"🗑️ Wallet <b>{wallet}</b> entfernt.")
+            else:
+                await send_message(chat_id, f"❌ Wallet <b>{wallet}</b> nicht gefunden.")
+        else:
+            await send_message(chat_id, "⚠️ Format: /rm <WALLET>")
+
     elif text.startswith("/list"):
-        wallets = load_wallets()
-        if wallets:
+        if tracked_wallets:
             message = "📋 <b>Liste der getrackten Wallets:</b>
 "
-            for wallet, tag in wallets.items():
-                message += f"
-<b>{tag}</b>: <code>{wallet}</code>"
-            await send_message(chat_id, message)
+            for wallet, tag in tracked_wallets.items():
+                message += f"• {wallet} – <i>{tag}</i>
+"
         else:
-            await send_message(chat_id, "📭 Keine Wallets getrackt.")
-    return {"ok": True}
+            message = "ℹ️ Keine Wallets getrackt."
+        await send_message(chat_id, message)
 
-async def send_message(chat_id, text):
-    async with httpx.AsyncClient() as client:
-        await client.post(f"{API_URL}/sendMessage", json={
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "HTML"
-        })
+    else:
+        await send_message(chat_id, "🤖 Befehle:
+/add <WALLET> <TAG>
+/rm <WALLET>
+/list")
+
+    return {"ok": True}
