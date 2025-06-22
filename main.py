@@ -1,3 +1,4 @@
+
 import os
 import asyncio
 import aiohttp
@@ -26,7 +27,13 @@ async def telegram_webhook(req: Request):
     chat_id = str(message.get("chat", {}).get("id", ""))
     text = message.get("text", "")
 
-    if text.startswith("/add"):
+    if not text.startswith("/"):
+        return {"ok": True}
+
+    if text.startswith("/start"):
+        await send_message(chat_id, "👋 Willkommen beim <b>RobertsSolTrackerBot</b>!\n\n<b>Verfügbare Befehle:</b>\n<code>/add WALLET TAG</code> – Wallet hinzufügen\n<code>/rm WALLET</code> – Wallet entfernen\n<code>/list</code> – Getrackte Wallets anzeigen")
+
+    elif text.startswith("/add"):
         parts = text.split()
         if len(parts) == 3:
             wallet, tag = parts[1], parts[2]
@@ -57,9 +64,6 @@ async def telegram_webhook(req: Request):
         await send_message(chat_id, message)
 
     else:
-        await send_message(chat_id, """🤖 Befehle:
-<code>/add WALLET TAG</code>
-<code>/rm WALLET</code>
-<code>/list</code>""")
+        await send_message(chat_id, "❌ Befehl existiert nicht. Verfügbare Befehle:\n<code>/add</code>, <code>/rm</code>, <code>/list</code>")
 
     return {"ok": True}
