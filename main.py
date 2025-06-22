@@ -1,4 +1,3 @@
-
 import os
 import asyncio
 import aiohttp
@@ -33,7 +32,7 @@ async def fetch_smart_wallets():
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as res:
                 data = await res.json()
-                # Platzhalter – echte Quelle/Wertung muss noch festgelegt werden
+                # HIER kannst du eine echte Quelle ersetzen – Beispiel:
                 return [
                     {"wallet": "4Z2bQnqN...Dummy", "winrate": 64, "roi": 18},
                     {"wallet": "7T29AKxX...Demo", "winrate": 72, "roi": 27}
@@ -53,9 +52,7 @@ async def wallet_discovery_loop():
                 winloss_stats[wallet] = {"win": 0, "loss": 0}
                 await send_message(
                     channel_id,
-                    f"🧠 Neue Smart Wallet entdeckt:
-<code>{wallet}</code> – WR: {entry['winrate']} % | ROI: {entry['roi']} %
-<a href='https://birdeye.so/address/{wallet}?chain=solana'>📈 Birdeye öffnen</a>"
+                    f"🧠 Neue Smart Wallet entdeckt:\n<code>{wallet}</code> – WR: {entry['winrate']} % | ROI: {entry['roi']} %\n<a href='https://birdeye.so/address/{wallet}?chain=solana'>📈 Birdeye öffnen</a>"
                 )
         await asyncio.sleep(1800)
 
@@ -74,13 +71,11 @@ async def telegram_webhook(req: Request):
         data_id = query["data"]
 
         if data_id == "add_help":
-            await send_message(chat_id, "📥 Um eine Wallet hinzuzufügen:
-<code>/add WALLET TAG</code>")
+            await send_message(chat_id, "📥 Um eine Wallet hinzuzufügen:\n<code>/add WALLET TAG</code>")
         elif data_id == "list":
             await handle_list(chat_id)
         elif data_id == "profit_help":
-            await send_message(chat_id, "➕ Um Profit hinzuzufügen:
-<code>/profit WALLET +/-BETRAG</code>")
+            await send_message(chat_id, "➕ Um Profit hinzuzufügen:\n<code>/profit WALLET +/-BETRAG</code>")
         elif data_id == "rm_list":
             if not tracked_wallets:
                 await send_message(chat_id, "ℹ️ Keine Wallets zum Entfernen.")
@@ -114,8 +109,7 @@ async def telegram_webhook(req: Request):
     if text.startswith("/start"):
         await bot.send_message(
             chat_id=chat_id,
-            text="👋 <b>Willkommen beim Solana Wallet Tracker!</b>
-Wähle unten eine Funktion aus:",
+            text="👋 <b>Willkommen beim Solana Wallet Tracker!</b>\nWähle unten eine Funktion aus:",
             parse_mode=ParseMode.HTML,
             reply_markup=get_main_buttons()
         )
@@ -179,15 +173,14 @@ Wähle unten eine Funktion aus:",
     else:
         await send_message(chat_id, "❌ Befehl existiert nicht. Tippe <code>/start</code> für Hilfe.")
 
-    return {"ok": True}
+    return {"ok": True"}
 
 async def handle_list(chat_id: str):
     if not tracked_wallets:
         await send_message(chat_id, "ℹ️ Keine Wallets getrackt.")
         return
 
-    msg = "📋 <b>Getrackte Wallets:</b>
-"
+    msg = "📋 <b>Getrackte Wallets:</b>\n"
     for idx, (wallet, tag) in enumerate(tracked_wallets.items(), 1):
         bird_link = f"https://birdeye.so/address/{wallet}?chain=solana"
         profit = manual_profits.get(wallet, 0)
@@ -197,9 +190,6 @@ async def handle_list(chat_id: str):
         wr = f"<b>WR(</b><span style='color:green'>{win}</span>/<span style='color:red'>{loss}</span><b>)</b>"
         pnl = f"<b> | PnL(</b><span style='color:{'green' if profit >= 0 else 'red'}'>{profit:.2f} sol</span><b>)</b>"
 
-        msg += f"
-<b>{idx}.</b> <a href='{bird_link}'>{wallet}</a> – <i>{tag}</i>
-{wr}{pnl}
-"
+        msg += f"\n<b>{idx}.</b> <a href='{bird_link}'>{wallet}</a> – <i>{tag}</i>\n{wr}{pnl}\n"
 
     await send_message(chat_id, msg)
