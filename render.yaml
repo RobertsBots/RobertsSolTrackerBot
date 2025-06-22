@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: roberts-sol-tracker
-    env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python main.py"
-    plan: free
-    runtime: python
-    pythonVersion: 3.10.13
