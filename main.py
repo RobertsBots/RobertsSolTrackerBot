@@ -11,9 +11,9 @@ bot = telegram.Bot(token=TOKEN)
 
 # Beispielkommando
 def list_wallets(update, context):
-    text = "📄 Getrackte Wallets:
+    text = """📄 Getrackte Wallets:
 1. BeispielWallet123
-2. BeispielWallet456"
+2. BeispielWallet456"""
     context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 def start(update, context):
