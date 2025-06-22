@@ -1,7 +1,5 @@
-
 import os
 import asyncio
-import aiohttp
 from fastapi import FastAPI, Request
 from telegram import Bot
 from telegram.constants import ParseMode
@@ -27,33 +25,41 @@ async def telegram_webhook(req: Request):
     chat_id = str(message.get("chat", {}).get("id", ""))
     text = message.get("text", "")
 
+    # ignorieren, wenn keine Nachricht oder kein Text
     if not text.startswith("/"):
         return {"ok": True}
 
+    # /start
     if text.startswith("/start"):
-        await send_message(chat_id, "👋 Willkommen beim <b>RobertsSolTrackerBot</b>!\n\n<b>Verfügbare Befehle:</b>\n<code>/add WALLET TAG</code> – Wallet hinzufügen\n<code>/rm WALLET</code> – Wallet entfernen\n<code>/list</code> – Getrackte Wallets anzeigen")
+        await send_message(chat_id, """🤖 Verfügbare Befehle:
+<code>/add WALLET TAG</code>
+<code>/rm WALLET</code>
+<code>/list</code>""")
 
+    # /add WALLET TAG
     elif text.startswith("/add"):
         parts = text.split()
         if len(parts) == 3:
             wallet, tag = parts[1], parts[2]
             tracked_wallets[wallet] = tag
-            await send_message(chat_id, f"✅ Wallet <b>{wallet}</b> mit Tag <b>{tag}</b> hinzugefügt.")
+            await send_message(chat_id, f"✅ Wallet <code>{wallet}</code> mit Tag <b>{tag}</b> hinzugefügt.")
         else:
-            await send_message(chat_id, "⚠️ Format: /add <WALLET> <TAG>")
+            await send_message(chat_id, "⚠️ Format: <code>/add WALLET TAG</code>")
 
+    # /rm WALLET
     elif text.startswith("/rm"):
         parts = text.split()
         if len(parts) == 2:
             wallet = parts[1]
             if wallet in tracked_wallets:
                 del tracked_wallets[wallet]
-                await send_message(chat_id, f"🗑️ Wallet <b>{wallet}</b> entfernt.")
+                await send_message(chat_id, f"🗑️ Wallet <code>{wallet}</code> entfernt.")
             else:
-                await send_message(chat_id, f"❌ Wallet <b>{wallet}</b> nicht gefunden.")
+                await send_message(chat_id, f"❌ Wallet <code>{wallet}</code> nicht gefunden.")
         else:
-            await send_message(chat_id, "⚠️ Format: /rm <WALLET>")
+            await send_message(chat_id, "⚠️ Format: <code>/rm WALLET</code>")
 
+    # /list
     elif text.startswith("/list"):
         if tracked_wallets:
             message = "📋 <b>Liste der getrackten Wallets:</b>\n"
@@ -63,7 +69,8 @@ async def telegram_webhook(req: Request):
             message = "ℹ️ Keine Wallets getrackt."
         await send_message(chat_id, message)
 
+    # Unbekannter Befehl
     else:
-        await send_message(chat_id, "❌ Befehl existiert nicht. Verfügbare Befehle:\n<code>/add</code>, <code>/rm</code>, <code>/list</code>")
+        await send_message(chat_id, "❌ Befehl existiert nicht. Tippe <code>/start</code> für Hilfe.")
 
     return {"ok": True}
