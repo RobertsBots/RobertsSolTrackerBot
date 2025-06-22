@@ -1,3 +1,4 @@
+
 import os
 import asyncio
 import aiohttp
@@ -5,24 +6,19 @@ from fastapi import FastAPI, Request
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 
-# FastAPI App definieren – wichtig für Railway!
 app = FastAPI()
 
-# Umgebungsvariablen lesen
 bot_token = os.getenv("BOT_TOKEN")
 channel_id = os.getenv("CHANNEL_ID")
 bot = Bot(token=bot_token)
 
-# Getrackte Wallets und PnL-Werte
-tracked_wallets = {}  # wallet -> tag
-manual_profits = {}   # wallet -> float
-winloss_stats = {}    # wallet -> {"win": int, "loss": int}
+tracked_wallets = {}
+manual_profits = {}
+winloss_stats = {}
 
-# Nachricht senden
 async def send_message(chat_id: str, text: str):
     await bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML)
 
-# Inline-Tastatur erzeugen für /start
 def get_main_buttons():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("📥 Wallet hinzufügen", callback_data="add_help")],
@@ -31,12 +27,43 @@ def get_main_buttons():
         [InlineKeyboardButton("➕ Profit eintragen", callback_data="profit_help")]
     ])
 
-# Bot startet
+async def fetch_smart_wallets():
+    url = "https://api.dexscreener.com/latest/dex/pairs/solana"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as res:
+                data = await res.json()
+                # Platzhalter – echte Quelle/Wertung muss noch festgelegt werden
+                return [
+                    {"wallet": "4Z2bQnqN...Dummy", "winrate": 64, "roi": 18},
+                    {"wallet": "7T29AKxX...Demo", "winrate": 72, "roi": 27}
+                ]
+    except Exception:
+        return []
+
+async def wallet_discovery_loop():
+    await asyncio.sleep(5)
+    while True:
+        smart_wallets = await fetch_smart_wallets()
+        for entry in smart_wallets:
+            wallet = entry["wallet"]
+            if wallet not in tracked_wallets:
+                tag = "🚀 AutoDetected"
+                tracked_wallets[wallet] = tag
+                winloss_stats[wallet] = {"win": 0, "loss": 0}
+                await send_message(
+                    channel_id,
+                    f"🧠 Neue Smart Wallet entdeckt:
+<code>{wallet}</code> – WR: {entry['winrate']} % | ROI: {entry['roi']} %
+<a href='https://birdeye.so/address/{wallet}?chain=solana'>📈 Birdeye öffnen</a>"
+                )
+        await asyncio.sleep(1800)
+
 @app.on_event("startup")
 async def startup_event():
     await send_message(channel_id, "✅ <b>RobertsSolTrackerBot ist bereit!</b>")
+    asyncio.create_task(wallet_discovery_loop())
 
-# Telegram Webhook-Handler
 @app.post("/")
 async def telegram_webhook(req: Request):
     data = await req.json()
@@ -47,19 +74,19 @@ async def telegram_webhook(req: Request):
         data_id = query["data"]
 
         if data_id == "add_help":
-            await send_message(chat_id, "📥 Um eine Wallet hinzuzufügen:\n<code>/add WALLET TAG</code>")
+            await send_message(chat_id, "📥 Um eine Wallet hinzuzufügen:
+<code>/add WALLET TAG</code>")
         elif data_id == "list":
             await handle_list(chat_id)
         elif data_id == "profit_help":
-            await send_message(chat_id, "➕ Um Profit hinzuzufügen:\n<code>/profit WALLET +/-BETRAG</code>")
+            await send_message(chat_id, "➕ Um Profit hinzuzufügen:
+<code>/profit WALLET +/-BETRAG</code>")
         elif data_id == "rm_list":
             if not tracked_wallets:
                 await send_message(chat_id, "ℹ️ Keine Wallets zum Entfernen.")
                 return
-            buttons = [
-                [InlineKeyboardButton(f"{tag}", callback_data=f"rm_wallet_{wallet}")]
-                for wallet, tag in tracked_wallets.items()
-            ]
+            buttons = [[InlineKeyboardButton(f"{tag}", callback_data=f"rm_wallet_{wallet}")]
+                       for wallet, tag in tracked_wallets.items()]
             await bot.send_message(
                 chat_id=chat_id,
                 text="🗑️ Wähle eine Wallet aus, um sie zu entfernen:",
@@ -87,7 +114,8 @@ async def telegram_webhook(req: Request):
     if text.startswith("/start"):
         await bot.send_message(
             chat_id=chat_id,
-            text="👋 <b>Willkommen beim Solana Wallet Tracker!</b>\nWähle unten eine Funktion aus:",
+            text="👋 <b>Willkommen beim Solana Wallet Tracker!</b>
+Wähle unten eine Funktion aus:",
             parse_mode=ParseMode.HTML,
             reply_markup=get_main_buttons()
         )
@@ -117,10 +145,8 @@ async def telegram_webhook(req: Request):
             if not tracked_wallets:
                 await send_message(chat_id, "ℹ️ Keine Wallets zum Entfernen.")
             else:
-                buttons = [
-                    [InlineKeyboardButton(f"{tag}", callback_data=f"rm_wallet_{wallet}")]
-                    for wallet, tag in tracked_wallets.items()
-                ]
+                buttons = [[InlineKeyboardButton(f"{tag}", callback_data=f"rm_wallet_{wallet}")]
+                           for wallet, tag in tracked_wallets.items()]
                 await bot.send_message(
                     chat_id=chat_id,
                     text="🗑️ Wähle eine Wallet aus, um sie zu entfernen:",
@@ -155,13 +181,13 @@ async def telegram_webhook(req: Request):
 
     return {"ok": True}
 
-# Helferfunktion für /list
 async def handle_list(chat_id: str):
     if not tracked_wallets:
         await send_message(chat_id, "ℹ️ Keine Wallets getrackt.")
         return
 
-    msg = "📋 <b>Getrackte Wallets:</b>\n"
+    msg = "📋 <b>Getrackte Wallets:</b>
+"
     for idx, (wallet, tag) in enumerate(tracked_wallets.items(), 1):
         bird_link = f"https://birdeye.so/address/{wallet}?chain=solana"
         profit = manual_profits.get(wallet, 0)
@@ -171,6 +197,9 @@ async def handle_list(chat_id: str):
         wr = f"<b>WR(</b><span style='color:green'>{win}</span>/<span style='color:red'>{loss}</span><b>)</b>"
         pnl = f"<b> | PnL(</b><span style='color:{'green' if profit >= 0 else 'red'}'>{profit:.2f} sol</span><b>)</b>"
 
-        msg += f"\n<b>{idx}.</b> <a href='{bird_link}'>{wallet}</a> – <i>{tag}</i>\n{wr}{pnl}\n"
+        msg += f"
+<b>{idx}.</b> <a href='{bird_link}'>{wallet}</a> – <i>{tag}</i>
+{wr}{pnl}
+"
 
     await send_message(chat_id, msg)
