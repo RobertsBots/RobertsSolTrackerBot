@@ -9,7 +9,6 @@ from telegram.ext import (
 )
 from fastapi import FastAPI, Request
 import uvicorn
-from telegram.ext.webhook import WebhookServer
 
 from core.database import supabase_client
 from core.ui import start_command, handle_callback_query
@@ -43,7 +42,6 @@ app = FastAPI()
 
 @app.post("/")
 async def telegram_webhook(request: Request):
-    """ Empfängt Telegram Updates und leitet sie an die Application weiter. """
     try:
         data = await request.json()
         update = Update.de_json(data, application.bot)
