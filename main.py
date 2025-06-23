@@ -1,33 +1,40 @@
 import os
 from fastapi import FastAPI
-from telegram.ext import Application, CommandHandler
-import logging
+from telegram import Update
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler,
+    ContextTypes
+)
+from dotenv import load_dotenv
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+load_dotenv()
+
+TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 app = FastAPI()
-telegram_app = Application.builder().token(BOT_TOKEN).build()
 
-async def start(update, context):
-    await update.message.reply_text("Willkommen beim RobertsSolTrackerBot!")
-
-telegram_app.add_handler(CommandHandler("start", start))
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("👋 Willkommen beim RobertsSolTrackerBot!")
 
 @app.on_event("startup")
-async def on_startup():
-    logger.info("Bot wird gestartet...")
-    await telegram_app.initialize()
-    await telegram_app.start()
-    await telegram_app.bot.set_webhook(url=WEBHOOK_URL)
-    await telegram_app.updater.start_webhook()
+async def startup():
+    application = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .build()
+    )
+    application.add_handler(CommandHandler("start", start_command))
+    await application.initialize()
+    await application.start()
+    await application.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook")
+    await application.updater.start_webhook(
+        listen="0.0.0.0",
+        port=int(os.getenv("PORT", 8000)),
+        webhook_url=f"{WEBHOOK_URL}/webhook"
+    )
 
 @app.on_event("shutdown")
-async def on_shutdown():
-    logger.info("Bot wird gestoppt...")
-    await telegram_app.updater.stop()
-    await telegram_app.stop()
-    await telegram_app.shutdown()
+async def shutdown():
+    await application.stop()
+    await application.shutdown()
