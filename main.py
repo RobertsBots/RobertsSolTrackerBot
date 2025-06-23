@@ -5,9 +5,12 @@ from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
-    Defaults
+    Defaults,
 )
 from fastapi import FastAPI, Request
+import uvicorn
+import asyncio
+
 from core.wallet_tracker import handle_add_wallet, handle_remove_wallet, handle_list_wallets
 from core.pnlsystem import handle_profit_command, handle_profit_button
 from core.ui import start_command, handle_callback_query
@@ -23,35 +26,35 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 defaults = Defaults(parse_mode="HTML")
 application = Application.builder().token(BOT_TOKEN).defaults(defaults).build()
 
-# === Command Handlers ===
+# === Commands ===
 application.add_handler(CommandHandler("start", start_command))
 application.add_handler(CommandHandler("add", handle_add_wallet))
 application.add_handler(CommandHandler("rm", handle_remove_wallet))
 application.add_handler(CommandHandler("list", handle_list_wallets))
 application.add_handler(CommandHandler("profit", handle_profit_command))
 
-# === Callback Handler ===
+# === Callback Buttons ===
 application.add_handler(CallbackQueryHandler(handle_callback_query))
 
-# === FastAPI Webhook Setup ===
+# === FastAPI Webhook Handler ===
 app = FastAPI()
-
-@app.on_event("startup")
-async def startup():
-    logging.info("Starting bot via webhook...")
-    await application.initialize()
-    await application.bot.set_webhook(WEBHOOK_URL)
-    await application.start()
-    logging.info("Webhook set and bot running.")
 
 @app.post("/")
 async def telegram_webhook(request: Request):
     data = await request.json()
     update = Update.de_json(data, application.bot)
-    await application.process_update(update)
+    await application.update_queue.put(update)
     return {"ok": True}
 
-# === Local Uvicorn Startup (used by Railway) ===
+# === Startup (Webhook, kein Polling!) ===
+async def main():
+    logging.info("Starting bot with webhook...")
+    await application.initialize()
+    await application.bot.set_webhook(WEBHOOK_URL)
+    await application.start()
+    logging.info("Bot started with webhook.")
+
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
+    loop = asyncio.get_event_loop()
+    loop.create_task(main())
+    uvicorn.run(app, host="0.0.0.0", port=8000)
