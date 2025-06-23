@@ -1,37 +1,54 @@
+import os
+import logging
 from fastapi import FastAPI, Request
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-import os
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    ContextTypes,
+)
+import telegram
 
-TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+WEBHOOK_PATH = "/webhook"
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # z. B. https://deinprojekt.up.railway.app/webhook
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
+telegram_bot_app = None  # Wird beim Startup gesetzt
+
+
+# Telegram-Befehl /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("✅ Der Bot ist jetzt aktiv und bereit zum Tracken!")
+
 
 @app.on_event("startup")
-async def startup():
-    application = ApplicationBuilder().token(TOKEN).build()
+async def on_startup():
+    global telegram_bot_app
+    telegram_bot_app = Application.builder().token(BOT_TOKEN).build()
 
-    async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        print("✅ /start empfangen")
-        if update.message:
-            await update.message.reply_text("Hallo, ich bin online!")
+    telegram_bot_app.add_handler(CommandHandler("start", start))
 
-    application.add_handler(CommandHandler("start", start))
+    # Starte den Bot im Webhook-Modus (nur lokal – FastAPI übernimmt Anfragen)
+    await telegram_bot_app.initialize()
+    await telegram_bot_app.bot.set_webhook(f"{WEBHOOK_URL}{WEBHOOK_PATH}")
+    await telegram_bot_app.start()
+    logger.info("🚀 Bot gestartet und Webhook gesetzt.")
 
-    await application.bot.set_webhook(f"{WEBHOOK_URL}/webhook")
-    app.bot_app = application
-    await application.initialize()
-    await application.start()
 
 @app.on_event("shutdown")
-async def shutdown():
-    await app.bot_app.stop()
+async def on_shutdown():
+    await telegram_bot_app.stop()
+    await telegram_bot_app.shutdown()
+    logger.info("🛑 Bot gestoppt.")
 
-@app.post("/webhook")
-async def telegram_webhook(request: Request):
-    data = await request.json()
-    print("📨 Neues Telegram-Update:", data)
-    update = Update.de_json(data, app.bot_app.bot)
-    await app.bot_app.process_update(update)
-    return "ok"
+
+@app.post(WEBHOOK_PATH)
+async def handle_webhook(request: Request):
+    raw_data = await request.body()
+    update = telegram.Update.de_json(data=raw_data.decode("utf-8"), bot=telegram_bot_app.bot)
+    await telegram_bot_app.update_queue.put(update)
+    return {"ok": True}
