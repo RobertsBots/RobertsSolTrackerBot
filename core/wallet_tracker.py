@@ -27,11 +27,13 @@ async def handle_add_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) != 2:
         await update.message.reply_text("❌ Nutzung: /add <WALLET> <TAG>")
         return
+
     address, tag = context.args
     exists = supabase.table("wallets").select("*").eq("address", address).execute()
     if exists.data:
         await update.message.reply_text("⚠️ Diese Wallet wird bereits getrackt.")
         return
+
     supabase.table("wallets").insert({
         "address": address,
         "tag": tag,
@@ -39,15 +41,21 @@ async def handle_add_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "wins": 0,
         "losses": 0
     }).execute()
+
     await update.message.reply_text(f"✅ Wallet {address} wurde mit Tag '{tag}' hinzugefügt.")
-    await context.bot.send_message(chat_id=CHANNEL_ID, text=f"📥 Neue Wallet getrackt:
+    await context.bot.send_message(
+        chat_id=CHANNEL_ID,
+        text=f"""📥 Neue Wallet getrackt:
 <code>{address}</code>
-Tag: {tag}")
+Tag: {tag}""",
+        parse_mode="HTML"
+    )
 
 async def handle_remove_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) != 1:
         await update.message.reply_text("❌ Nutzung: /rm <WALLET>")
         return
+
     address = context.args[0]
     supabase.table("wallets").delete().eq("address", address).execute()
     await update.message.reply_text(f"🗑️ Wallet {address} wurde entfernt.")
@@ -57,17 +65,18 @@ async def handle_list_wallets(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not result.data:
         await update.message.reply_text("ℹ️ Es werden derzeit keine Wallets getrackt.")
         return
+
     response = "<b>📊 Getrackte Wallets:</b>"
-
-
     for wallet in result.data:
         response += format_wallet_output(wallet) + "\n"
+
     await update.message.reply_text(response, parse_mode="HTML")
 
 async def handle_profit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) != 2:
         await update.message.reply_text("❌ Nutzung: /profit <wallet> <+/-betrag>")
         return
+
     address = context.args[0]
     raw_amount = context.args[1]
 
@@ -98,4 +107,6 @@ async def handle_profit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "losses": losses
     }).eq("address", address).execute()
 
-    await update.message.reply_text(f"💰 Neuer PnL für Wallet {address}: {updated_pnl:+.2f} sol (WR: {wins}/{wins + losses})")
+    await update.message.reply_text(
+        f"💰 Neuer PnL für Wallet {address}: {updated_pnl:+.2f} sol (WR: {wins}/{wins + losses})"
+    )
