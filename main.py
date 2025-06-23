@@ -1,33 +1,40 @@
 import os
-from fastapi import FastAPI
-from telegram.ext import Application, CommandHandler
+import logging
 from telegram import Update
-from telegram.ext import ContextTypes
-from telegram.ext.webhook import WebhookServer
+from telegram.ext import Application, CommandHandler, ContextTypes
+from fastapi import FastAPI
+from telegram.ext.webhook import configure_app
 
 TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = os.getenv("CHANNEL_ID")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Beispiel: https://your-railway-app.up.railway.app
 
+# Logging
+logging.basicConfig(level=logging.INFO)
+
+# FastAPI App
 app = FastAPI()
+
+# Telegram Application
 application = Application.builder().token(TOKEN).build()
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hallo! Der Bot ist aktiv.")
-
-application.add_handler(CommandHandler("start", start))
-
 @app.on_event("startup")
-async def on_startup():
+async def startup():
+    await application.bot.set_webhook(WEBHOOK_URL)
     await application.initialize()
     await application.start()
-    await application.bot.set_webhook(WEBHOOK_URL)
 
 @app.on_event("shutdown")
-async def on_shutdown():
+async def shutdown():
     await application.stop()
     await application.shutdown()
 
 @app.get("/")
-def root():
+async def root():
     return {"status": "ok"}
+
+@application.command_handler("start")
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("✅ Bot ist aktiv!")
+
+# Webhook mit FastAPI verbinden
+configure_app(app, application)
