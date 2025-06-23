@@ -1,16 +1,17 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, CommandHandler
+from telegram.ext import CommandHandler, ContextTypes
 
-async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("📋 Getrackte Wallets", callback_data='list_wallets')],
-        [InlineKeyboardButton("➕ Wallet hinzufügen", callback_data='add_wallet')],
-        [InlineKeyboardButton("➖ Wallet entfernen", callback_data='remove_wallet')],
-        [InlineKeyboardButton("💰 Profit manuell eintragen", callback_data='add_profit')],
+        [InlineKeyboardButton("➕ Wallet hinzufügen", callback_data="add_wallet")],
+        [InlineKeyboardButton("📋 Wallets anzeigen", callback_data="list_wallets")],
+        [InlineKeyboardButton("💰 Profit eintragen", callback_data="profit")],
+        [InlineKeyboardButton("❌ Wallet entfernen", callback_data="remove_wallet")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "Willkommen beim 🧠 RobertsSolTrackerBot!\n\nWas möchtest du tun?",
+        reply_markup=reply_markup,
+    )
 
-    await update.message.reply_text("Willkommen beim 🛰️ RobertsSolTrackerBot!", reply_markup=reply_markup)
-
-def get_start_handler():
-    return CommandHandler("start", start_handler)
+start_handler = CommandHandler("start", start)
