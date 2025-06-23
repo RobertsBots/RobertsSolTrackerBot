@@ -1,212 +1,224 @@
 import os
-import json
 import logging
-import httpx
+import asyncio
 from fastapi import FastAPI, Request
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
+from telegram.constants import ParseMode
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, filters,
     CallbackQueryHandler, ConversationHandler, ContextTypes
 )
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.interval import IntervalTrigger
+from dotenv import load_dotenv
+
+load_dotenv()
+logging.basicConfig(level=logging.INFO)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 RAILWAY_STATIC_URL = os.getenv("RAILWAY_STATIC_URL")
 
-wallets = {}
-user_filters = {}
-smartfinder_mode = None
-
-logging.basicConfig(level=logging.INFO)
-fastapi_app = FastAPI()
-scheduler = AsyncIOScheduler()
-
+app = FastAPI()
+bot = Bot(token=BOT_TOKEN)
 application = Application.builder().token(BOT_TOKEN).build()
 
-# --- STATE HANDLER IDs ---
-WINRATE, ROI = range(2)
+# Speicher
+tracked_wallets = {}  # wallet -> tag
+manual_profits = {}   # wallet -> float
+winloss_stats = {}    # wallet -> {"win": int, "loss": int}
+user_filters = {"wr": 60, "roi": 5}
 
-# --- Webhook Route ---
-@fastapi_app.post("/" + BOT_TOKEN)
-async def telegram_webhook(req: Request):
-    data = await req.json()
-    update = Update.de_json(data, application._bot)
-    await application.update_queue.put(update)
-    return {"ok": True}
+# Buttons
+def get_main_buttons():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("📥 Wallet hinzufügen", callback_data="add_help")],
+        [InlineKeyboardButton("📋 Liste anzeigen", callback_data="list")],
+        [InlineKeyboardButton("➕ Profit eintragen", callback_data="profit_help")],
+        [InlineKeyboardButton("🚀 Smart Finder", callback_data="smartfinder_menu")]
+    ])
 
-# --- Commands ---
+def get_smartfinder_buttons():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🌕 Moonbags", callback_data="moonbags")],
+        [InlineKeyboardButton("⚡ Scalping", callback_data="scalping")],
+        [InlineKeyboardButton("🎯 Own Filter", callback_data="own_filter")]
+    ])
+
+# Commands
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("➕ Wallet hinzufügen", callback_data="add_wallet")],
-        [InlineKeyboardButton("📋 Wallet-Liste", callback_data="list_wallets")],
-        [InlineKeyboardButton("📈 Profit manuell setzen", callback_data="manual_profit")],
-        [InlineKeyboardButton("🧠 SmartFinder starten", callback_data="smartfinder")],
-    ]
-    await update.message.reply_text("Willkommen beim 🧠 RobertsSolTrackerBot", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(
+        "👋 Willkommen! Wähle eine Funktion:",
+        reply_markup=get_main_buttons(),
+        parse_mode=ParseMode.HTML
+    )
 
-async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    args = context.args
-    if len(args) < 2:
-        await update.message.reply_text("Verwendung: /add <WALLET> <TAG>")
-        return
-    wallet, tag = args[0], " ".join(args[1:])
-    wallets[wallet] = {"tag": tag, "pnl": 0.0, "wins": 0, "losses": 0}
-    await context.bot.send_message(chat_id=CHANNEL_ID, text=f"👀 Tracking gestartet für: `{wallet}`\n🏷️ {tag}", parse_mode="Markdown")
-
-async def rm(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    args = context.args
-    if not args:
-        await update.message.reply_text("Verwendung: /rm <WALLET>")
-        return
-    wallet = args[0]
-    if wallet in wallets:
-        del wallets[wallet]
-        await update.message.reply_text(f"✅ {wallet} entfernt.")
+async def add_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    parts = update.message.text.split()
+    if len(parts) == 3:
+        wallet, tag = parts[1], parts[2]
+        tracked_wallets[wallet] = tag
+        winloss_stats[wallet] = {"win": 0, "loss": 0}
+        await update.message.reply_text(f"✅ Wallet <code>{wallet}</code> getrackt.", parse_mode=ParseMode.HTML)
     else:
-        await update.message.reply_text("Wallet nicht gefunden.")
+        await update.message.reply_text("⚠️ Format: /add WALLET TAG")
+
+async def remove_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    parts = update.message.text.split()
+    if len(parts) == 2:
+        wallet = parts[1]
+        if wallet in tracked_wallets:
+            del tracked_wallets[wallet]
+            manual_profits.pop(wallet, None)
+            winloss_stats.pop(wallet, None)
+            await update.message.reply_text("🗑️ Wallet entfernt.")
+        else:
+            await update.message.reply_text("❌ Wallet nicht gefunden.")
+    else:
+        await update.message.reply_text("⚠️ Format: /rm WALLET")
 
 async def list_wallets(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not wallets:
-        await update.message.reply_text("Keine Wallets getrackt.")
+    if not tracked_wallets:
+        await update.message.reply_text("ℹ️ Keine Wallets getrackt.")
         return
-    text = ""
-    for wallet, data in wallets.items():
-        pnl_color = "🟢" if data["pnl"] >= 0 else "🔴"
-        wr_color = "🟢" if data["wins"] >= data["losses"] else "🔴"
-        wr_total = data["wins"] + data["losses"]
-        wr_display = f"{wr_color} WR({data['wins']}/{wr_total})"
-        text += f"🏷️ {data['tag']}\n🔗 `{wallet}`\n{wr_display} | {pnl_color} PnL({data['pnl']:.2f} sol)\n\n"
-    await update.message.reply_text(text, parse_mode="Markdown")
 
-async def set_profit(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    args = context.args
-    if len(args) < 2:
-        await update.message.reply_text("Verwendung: /profit <wallet> <+/-betrag>")
-        return
-    wallet, value = args[0], args[1]
-    try:
-        amount = float(value)
-    except ValueError:
-        await update.message.reply_text("Ungültiger Betrag.")
-        return
-    if wallet not in wallets:
-        await update.message.reply_text("Wallet nicht gefunden.")
-        return
-    wallets[wallet]["pnl"] += amount
-    if amount >= 0:
-        wallets[wallet]["wins"] += 1
+    msg = "📋 <b>Getrackte Wallets:</b>\n"
+    for idx, (wallet, tag) in enumerate(tracked_wallets.items(), 1):
+        bird_link = f"https://birdeye.so/address/{wallet}?chain=solana"
+        profit = manual_profits.get(wallet, 0)
+        stats = winloss_stats.get(wallet, {"win": 0, "loss": 0})
+        win, loss = stats["win"], stats["loss"]
+
+        wr = f"<b>WR(</b><span style='color:green'>{win}</span>/<span style='color:red'>{loss}</span><b>)</b>"
+        pnl = f"<b> | PnL(</b><span style='color:{'green' if profit >= 0 else 'red'}'>{profit:.2f} sol</span><b>)</b>"
+
+        msg += f"\n<b>{idx}.</b> <a href='{bird_link}'>{wallet}</a> – <i>{tag}</i>\n{wr}{pnl}\n"
+
+    await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+
+async def profit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    parts = update.message.text.split()
+    if len(parts) == 3:
+        wallet, profit_str = parts[1], parts[2]
+        if wallet not in tracked_wallets:
+            await update.message.reply_text("❌ Diese Wallet wird nicht getrackt.")
+            return
+        if profit_str.startswith("+") or profit_str.startswith("-"):
+            try:
+                profit = float(profit_str)
+                manual_profits[wallet] = profit
+                await update.message.reply_text(
+                    f"💰 Manuell eingetragener Profit für <code>{wallet}</code>: <b>{profit} sol</b>",
+                    parse_mode=ParseMode.HTML
+                )
+            except ValueError:
+                await update.message.reply_text("❌ Ungültiger Betrag. Beispiel: /profit WALLET +12.3")
+        else:
+            await update.message.reply_text("⚠️ Format: /profit WALLET +/-BETRAG")
     else:
-        wallets[wallet]["losses"] += 1
-    await update.message.reply_text(f"✅ PnL für {wallet} aktualisiert.")
+        await update.message.reply_text("⚠️ Format: /profit WALLET +/-BETRAG")
 
-# --- SmartFinder ---
+# SmartFinder + ConversationHandler
+ASK_WR, ASK_ROI = range(2)
+
 async def smartfinder_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton("🚀 Moonbags", callback_data="mode_moonbags")],
-        [InlineKeyboardButton("⚡ Scalping", callback_data="mode_scalping")],
-        [InlineKeyboardButton("🔧 Own Filter", callback_data="mode_own")],
-    ]
-    await update.callback_query.message.reply_text("Wähle SmartFinder-Modus:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.callback_query.message.reply_text("🎯 Wähle deinen Modus:", reply_markup=get_smartfinder_buttons())
 
-async def own_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.message.reply_text("Eigener Modus aktiv.\nGib Mindest-Winrate ein (z. B. 60%)")
-    return WINRATE
+async def moonbags_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_filters["wr"], user_filters["roi"] = 70, 10
+    await update.message.reply_text("🌕 Moonbags-Modus aktiviert.")
 
-async def winrate_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def scalping_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_filters["wr"], user_filters["roi"] = 60, 5
+    await update.message.reply_text("⚡ Scalping-Modus aktiviert.")
+
+async def own_filter_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.callback_query.message.reply_text("Gib deine gewünschte Winrate in % an:")
+    return ASK_WR
+
+async def own_filter_wr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        wr = int(update.message.text.replace("%", ""))
-        user_filters["winrate"] = wr
-        await update.message.reply_text("Gib nun Mindest-ROI ein (z. B. 10%)")
-        return ROI
+        user_filters["wr"] = int(update.message.text.replace("%", ""))
+        await update.message.reply_text("Gib nun deinen gewünschten ROI in % an:")
+        return ASK_ROI
     except:
-        await update.message.reply_text("Bitte gültige Zahl eingeben.")
-        return WINRATE
+        await update.message.reply_text("❌ Bitte gültige Winrate angeben.")
+        return ASK_WR
 
-async def roi_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def own_filter_roi(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        roi = int(update.message.text.replace("%", ""))
-        user_filters["roi"] = roi
-        global smartfinder_mode
-        smartfinder_mode = "own"
-        await update.message.reply_text(f"✅ Eigener SmartFinder aktiv: WR ≥ {user_filters['winrate']}% | ROI ≥ {roi}%")
+        user_filters["roi"] = int(update.message.text.replace("%", ""))
+        await update.message.reply_text(
+            f"✅ Eigene Filter aktiviert: WR ≥ {user_filters['wr']}%, ROI ≥ {user_filters['roi']}%")
         return ConversationHandler.END
     except:
-        await update.message.reply_text("Bitte gültige Zahl eingeben.")
-        return ROI
+        await update.message.reply_text("❌ Bitte gültigen ROI angeben.")
+        return ASK_ROI
 
-# --- SmartFinder Worker ---
-async def auto_discover_wallets():
-    logging.info("🔎 Running SmartFinder...")
-    found = [
-        {"wallet": "SmartWallet1", "wr": 70, "roi": 12.3, "sol": 4.1, "tag": "🚀 Auto"},
-        {"wallet": "SmartWallet2", "wr": 62, "roi": 9.4, "sol": 1.7, "tag": "🚀 Auto"},
-    ]
-    for wallet in found:
-        wr_min = user_filters.get("winrate", 60)
-        roi_min = user_filters.get("roi", 5)
-        if wallet["wr"] >= wr_min and wallet["roi"] >= roi_min:
-            if wallet["wallet"] not in wallets:
-                wallets[wallet["wallet"]] = {
-                    "tag": wallet["tag"],
-                    "pnl": 0.0,
-                    "wins": 0,
-                    "losses": 0
-                }
-                text = f"🎯 Smart Wallet entdeckt!\n\n🔗 `{wallet['wallet']}`\n📊 WR: {wallet['wr']}% | ROI: {wallet['roi']}% | Balance: {wallet['sol']} sol\n🏷️ {wallet['tag']}"
-                keyboard = [[InlineKeyboardButton("Jetzt tracken ✅", callback_data=f"track_{wallet['wallet']}")]]
-                await application.bot.send_message(chat_id=CHANNEL_ID, text=text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
-
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-
-    if data == "add_wallet":
-        await query.message.reply_text("Nutze `/add <wallet> <tag>`")
-    elif data == "list_wallets":
-        await list_wallets(update, context)
-    elif data == "manual_profit":
-        await query.message.reply_text("Nutze `/profit <wallet> <+/-betrag>`")
-    elif data == "smartfinder":
+# Callback Buttons
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = update.callback_query.data
+    await update.callback_query.answer()
+    if data == "add_help":
+        await update.callback_query.message.reply_text("📥 Nutze /add WALLET TAG")
+    elif data == "list":
+        await list_wallets(update.callback_query, context)
+    elif data == "profit_help":
+        await update.callback_query.message.reply_text("➕ Nutze /profit WALLET +/-BETRAG")
+    elif data == "smartfinder_menu":
         await smartfinder_menu(update, context)
-    elif data.startswith("mode_"):
-        mode = data.split("_")[1]
-        global smartfinder_mode
-        if mode == "own":
-            return await own_start(update, context)
-        smartfinder_mode = mode
-        await query.message.reply_text(f"✅ SmartFinder-Modus aktiviert: {mode.upper()}")
-    elif data.startswith("track_"):
-        wallet = data.split("_", 1)[1]
-        wallets[wallet] = {"tag": "🚀 Auto", "pnl": 0.0, "wins": 0, "losses": 0}
-        await query.message.reply_text(f"✅ Tracking für {wallet} aktiviert.")
+    elif data == "moonbags":
+        await moonbags_command(update.callback_query, context)
+    elif data == "scalping":
+        await scalping_command(update.callback_query, context)
+    elif data == "own_filter":
+        return await own_filter_start(update, context)
 
-# --- Scheduler Setup ---
-scheduler.add_job(auto_discover_wallets, trigger=IntervalTrigger(minutes=30))
-scheduler.start()
-logging.info("✅ Scheduler gestartet")
+# Cronjob Dummy Smart Wallet Discovery
+async def auto_discover_wallets():
+    dummy_wallet = "DemoSmartWalletXYZ"
+    bird_link = f"https://birdeye.so/address/{dummy_wallet}?chain=solana"
+    msg = (
+        f"📡 <a href='{bird_link}'>{dummy_wallet}</a> – 3.7 SOL – AccountAge: 92 Tage\n"
+        f"Winrate: 75% | ROI: 12% | 7d PnL: +8.1 sol\n"
+        f"7d Tokens: 14 | All Tokens: 38 | Hodl Tokens: 6\n"
+        f"Lifetime PnL: +19.4 sol"
+    )
+    await bot.send_message(chat_id=CHANNEL_ID, text=msg, parse_mode=ParseMode.HTML,
+                           reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Dann mal los", callback_data="track_demo")]]))
 
-# --- Handlers registrieren ---
+# Setup
 application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("add", add))
-application.add_handler(CommandHandler("rm", rm))
+application.add_handler(CommandHandler("add", add_wallet))
+application.add_handler(CommandHandler("rm", remove_wallet))
 application.add_handler(CommandHandler("list", list_wallets))
-application.add_handler(CommandHandler("profit", set_profit))
-application.add_handler(CallbackQueryHandler(button_handler))
+application.add_handler(CommandHandler("profit", profit_command))
+application.add_handler(CommandHandler("smartfinder", smartfinder_menu))
+application.add_handler(CallbackQueryHandler(button_callback))
 
 conv_handler = ConversationHandler(
-    entry_points=[CallbackQueryHandler(own_start, pattern="mode_own")],
+    entry_points=[CallbackQueryHandler(own_filter_start, pattern="^own_filter$")],
     states={
-        WINRATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, winrate_input)],
-        ROI: [MessageHandler(filters.TEXT & ~filters.COMMAND, roi_input)],
+        ASK_WR: [MessageHandler(filters.TEXT & ~filters.COMMAND, own_filter_wr)],
+        ASK_ROI: [MessageHandler(filters.TEXT & ~filters.COMMAND, own_filter_roi)],
     },
     fallbacks=[],
 )
 application.add_handler(conv_handler)
 
-# --- Start Webhook ---
+scheduler = AsyncIOScheduler()
+scheduler.add_job(auto_discover_wallets, "interval", minutes=30)
+scheduler.start()
+
+@app.post("/")
+async def telegram_webhook(req: Request):
+    data = await req.json()
+    update = Update.de_json(data, bot)
+    await application.process_update(update)
+    return {"ok": True}
+
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(fastapi_app, host="0.0.0.0", port=8080)
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=8080,
+        webhook_url=f"https://{RAILWAY_STATIC_URL}/"
+    )
