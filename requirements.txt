@@ -1,5 +1,5 @@
-python-telegram-bot==20.8
+python-telegram-bot[webhooks]==20.7
 fastapi
 uvicorn
-apscheduler
 aiohttp
+apscheduler
