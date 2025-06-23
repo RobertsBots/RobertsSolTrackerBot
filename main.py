@@ -1,8 +1,6 @@
 import os
 import logging
-import asyncio
 from fastapi import FastAPI, Request
-import uvicorn
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -10,13 +8,12 @@ from telegram.ext import (
     CallbackQueryHandler,
     Defaults
 )
-
 from core.database import supabase_client
 from core.ui import start_command, handle_callback_query
 from core.wallet_tracker import handle_add_wallet, handle_remove_wallet, handle_list_wallets
 from core.pnlsystem import handle_profit_command, handle_profit_button
 
-# === Logging Setup ===
+# === Logging ===
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
@@ -27,7 +24,10 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# === Telegram Application ===
+# === FastAPI ===
+app = FastAPI()
+
+# === Telegram Bot Setup ===
 defaults = Defaults(parse_mode="HTML")
 application = Application.builder().token(BOT_TOKEN).defaults(defaults).build()
 
@@ -39,31 +39,22 @@ application.add_handler(CommandHandler("list", handle_list_wallets))
 application.add_handler(CommandHandler("profit", handle_profit_command))
 application.add_handler(CallbackQueryHandler(handle_callback_query))
 
-# === FastAPI App ===
-app = FastAPI()
-
+# === Webhook Endpoint ===
 @app.post("/")
-async def telegram_webhook(request: Request):
+async def process_update(request: Request):
     try:
         data = await request.json()
-        logger.info("📩 Eingehende Telegram-Update: %s", data)
-
         update = Update.de_json(data, application.bot)
-        await application.update_queue.put(update)
-
+        await application.process_update(update)
         return {"ok": True}
     except Exception as e:
-        logger.error("❌ Fehler beim Verarbeiten des Webhooks: %s", str(e))
+        logger.error("❌ Fehler beim Verarbeiten des Telegram-Updates: %s", str(e))
         return {"ok": False, "error": str(e)}
 
-# === Bot Starten ===
-async def main():
-    logger.info("🚀 Bot wird initialisiert...")
+# === Startup Hook ===
+@app.on_event("startup")
+async def on_startup():
+    logger.info("🚀 Bot wird gestartet und Webhook wird gesetzt...")
     await application.initialize()
-    await application.bot.set_webhook(WEBHOOK_URL)
-    await application.start()
-    logger.info("✅ Webhook gesetzt und Bot gestartet.")
-
-if __name__ == "__main__":
-    asyncio.run(main())
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    await application.bot.set_webhook(url=WEBHOOK_URL)
+    logger.info("✅ Webhook gesetzt.")
