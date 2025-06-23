@@ -1,15 +1,9 @@
-
-from postgrest import PostgrestClient
+from supabase import create_client
 import os
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-client = PostgrestClient(f"{SUPABASE_URL}/rest/v1/")
-client.auth(token=SUPABASE_KEY)
-
-def insert_wallet(address: str, tag: str):
-    return client.from_("wallets").insert({"address": address, "tag": tag}).execute()
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def get_wallets():
-    return client.from_("wallets").select("*").execute().data
+    return supabase.table("wallets").select("*").execute().data
