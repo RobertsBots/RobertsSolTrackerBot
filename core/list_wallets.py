@@ -1,1 +1,0 @@
-# existing list_wallets command code (unchanged)
