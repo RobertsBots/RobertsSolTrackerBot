@@ -1,18 +1,23 @@
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-def get_main_menu():
+def get_main_buttons():
     keyboard = [
-        [InlineKeyboardButton("➕ Wallet hinzufügen", callback_data="add_wallet")],
-        [InlineKeyboardButton("📃 Getrackte Wallets", callback_data="list_wallets")],
-        [InlineKeyboardButton("💰 PnL setzen", callback_data="set_profit")],
-        [InlineKeyboardButton("🗑️ Wallet entfernen", callback_data="remove_wallet")]
+        [
+            InlineKeyboardButton("➕ Wallet hinzufügen", callback_data="add_wallet"),
+            InlineKeyboardButton("➖ Wallet entfernen", callback_data="remove_wallet")
+        ],
+        [
+            InlineKeyboardButton("📋 Getrackte Wallets", callback_data="list_wallets")
+        ],
+        [
+            InlineKeyboardButton("💰 Profit eintragen", callback_data="enter_profit")
+        ]
     ]
     return InlineKeyboardMarkup(keyboard)
 
-def get_profit_buttons(wallet_address):
+
+def get_cancel_button():
     keyboard = [
-        [InlineKeyboardButton("➕ +1 sol", callback_data=f"profit|{wallet_address}|+1")],
-        [InlineKeyboardButton("➖ -1 sol", callback_data=f"profit|{wallet_address}|-1")],
-        [InlineKeyboardButton("🔙 Zurück", callback_data="main_menu")]
+        [InlineKeyboardButton("❌ Abbrechen", callback_data="cancel")]
     ]
     return InlineKeyboardMarkup(keyboard)
