@@ -1,55 +1,70 @@
-import os
 import logging
+import os
 from fastapi import FastAPI, Request
 from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
-    Defaults
 )
-import asyncio
+from telegram.ext import ContextTypes
+from dotenv import load_dotenv
 
-from core.ui import start_command, handle_callback_query
-from core.wallet_tracker import handle_add_wallet, handle_remove_wallet, handle_list_wallets
-from core.pnlsystem import handle_profit_command, handle_profit_button
-
-# === Logging ===
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
+# Core-Module
+from core.handlers import (
+    start_command,
+    add_command,
+    remove_command,
+    list_command,
+    profit_command,
+    handle_callback_query,
 )
 
-# === ENV Variablen ===
+# Umgebungsvariablen laden
+load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# === Telegram Setup ===
-defaults = Defaults(parse_mode="HTML")
-application = Application.builder().token(BOT_TOKEN).defaults(defaults).build()
+# Logging konfigurieren
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
 
-# === Handler Registrieren ===
-application.add_handler(CommandHandler("start", start_command))
-application.add_handler(CommandHandler("add", handle_add_wallet))
-application.add_handler(CommandHandler("rm", handle_remove_wallet))
-application.add_handler(CommandHandler("list", handle_list_wallets))
-application.add_handler(CommandHandler("profit", handle_profit_command))
-application.add_handler(CallbackQueryHandler(handle_callback_query))
-
-# === FastAPI ===
+# FastAPI-Anwendung
 app = FastAPI()
+telegram_app: Application = None  # Wird später initialisiert
+
 
 @app.on_event("startup")
 async def startup():
-    logging.info("🚀 Starte Telegram-Bot...")
-    await application.initialize()
-    await application.bot.set_webhook(WEBHOOK_URL)
-    asyncio.create_task(application.start())
-    logging.info("✅ Webhook gesetzt und Bot gestartet.")
+    global telegram_app
+    telegram_app = Application.builder().token(BOT_TOKEN).build()
+
+    telegram_app.add_handler(CommandHandler("start", start_command))
+    telegram_app.add_handler(CommandHandler("add", add_command))
+    telegram_app.add_handler(CommandHandler("rm", remove_command))
+    telegram_app.add_handler(CommandHandler("list", list_command))
+    telegram_app.add_handler(CommandHandler("profit", profit_command))
+    telegram_app.add_handler(CallbackQueryHandler(handle_callback_query))
+
+    await telegram_app.initialize()
+    await telegram_app.start()
+    await telegram_app.bot.set_webhook(url=WEBHOOK_URL)
+    logger.info("🚀 Bot initialisiert und Webhook gesetzt.")
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await telegram_app.stop()
+    await telegram_app.shutdown()
+    logger.info("🛑 Bot wurde gestoppt.")
+
 
 @app.post("/")
-async def telegram_webhook(request: Request):
+async def webhook_handler(request: Request):
     data = await request.json()
-    update = Update.de_json(data, application.bot)
-    await application.update_queue.put(update)
+    update = Update.de_json(data, telegram_app.bot)
+    await telegram_app.process_update(update)
     return {"ok": True}
