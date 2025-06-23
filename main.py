@@ -13,9 +13,9 @@ async def startup():
     application = ApplicationBuilder().token(TOKEN).build()
 
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        print("✅ /start Befehl erkannt")
+        print("✅ /start empfangen")
         if update.message:
-            await update.message.reply_text("Der Bot ist online!")
+            await update.message.reply_text("Hallo, ich bin online!")
 
     application.add_handler(CommandHandler("start", start))
 
@@ -31,7 +31,7 @@ async def shutdown():
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     data = await request.json()
-    print("📨 Webhook Update erhalten:", data)  # Das zeigt uns, ob irgendwas ankommt
+    print("📨 Neues Telegram-Update:", data)
     update = Update.de_json(data, app.bot_app.bot)
     await app.bot_app.process_update(update)
     return "ok"
