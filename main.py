@@ -1,11 +1,14 @@
 import os
 import logging
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
+    CallbackContext,
     CommandHandler,
     CallbackQueryHandler,
-    Defaults,
+    MessageHandler,
+    filters,
+    Defaults
 )
 from fastapi import FastAPI, Request
 import uvicorn
@@ -36,7 +39,7 @@ application.add_handler(CommandHandler("profit", handle_profit_command))
 # === Callback Buttons ===
 application.add_handler(CallbackQueryHandler(handle_callback_query))
 
-# === FastAPI Webhook Handler ===
+# === FastAPI ===
 app = FastAPI()
 
 @app.post("/")
@@ -46,13 +49,13 @@ async def telegram_webhook(request: Request):
     await application.update_queue.put(update)
     return {"ok": True}
 
-# === Startup (Webhook, kein Polling!) ===
+# === Startup ===
 async def main():
     logging.info("Starting bot with webhook...")
     await application.initialize()
-    await application.bot.set_webhook(WEBHOOK_URL)
     await application.start()
-    logging.info("Bot started with webhook.")
+    await application.bot.set_webhook(WEBHOOK_URL)
+    logging.info("Bot started.")
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
