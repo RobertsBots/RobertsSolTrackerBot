@@ -57,9 +57,9 @@ async def handle_list_wallets(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not result.data:
         await update.message.reply_text("ℹ️ Es werden derzeit keine Wallets getrackt.")
         return
-    response = "<b>📊 Getrackte Wallets:</b>
+    response = "<b>📊 Getrackte Wallets:</b>"
 
-"
+
     for wallet in result.data:
         response += format_wallet_output(wallet) + "\n"
     await update.message.reply_text(response, parse_mode="HTML")
