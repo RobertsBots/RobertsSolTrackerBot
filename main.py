@@ -1,13 +1,10 @@
 import os
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import (
     Application,
-    CallbackContext,
     CommandHandler,
     CallbackQueryHandler,
-    MessageHandler,
-    filters,
     Defaults
 )
 from fastapi import FastAPI, Request
