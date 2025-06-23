@@ -1,30 +1,41 @@
-from supabase import create_client
 import os
+from supabase import create_client, Client
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# === Funktionen zum Zugriff auf die Wallet-Tabelle ===
+def add_wallet(address: str, tag: str):
+    existing = supabase.table("wallets").select("address").eq("address", address).execute()
+    if existing.data:
+        return False
+    supabase.table("wallets").insert({"address": address, "tag": tag, "pnl": 0.0, "wins": 0, "losses": 0}).execute()
+    return True
 
-async def add_wallet_entry(wallet: str, tag: str):
-    supabase_client.table("wallets").insert({"wallet": wallet, "tag": tag}).execute()
+def remove_wallet(address: str):
+    supabase.table("wallets").delete().eq("address", address).execute()
 
-async def remove_wallet_entry(wallet: str):
-    supabase_client.table("wallets").delete().eq("wallet", wallet).execute()
+def list_wallets():
+    result = supabase.table("wallets").select("*").execute()
+    return result.data if result.data else []
 
-async def list_wallet_entries():
-    result = supabase_client.table("wallets").select("*").execute()
-    return result.data or []
+def update_pnl(address: str, amount: float):
+    wallet = supabase.table("wallets").select("*").eq("address", address).execute()
+    if not wallet.data:
+        return False
+    current_pnl = wallet.data[0]["pnl"]
+    supabase.table("wallets").update({"pnl": current_pnl + amount}).eq("address", address).execute()
+    return True
 
-# === Funktionen für PnL und Winrate ===
+def add_win(address: str):
+    wallet = supabase.table("wallets").select("wins").eq("address", address).execute()
+    if wallet.data:
+        wins = wallet.data[0]["wins"] + 1
+        supabase.table("wallets").update({"wins": wins}).eq("address", address).execute()
 
-async def update_wallet_profit(wallet: str, profit: float):
-    supabase_client.table("wallets").update({"manual_profit": profit}).eq("wallet", wallet).execute()
-
-async def get_wallet_by_address(wallet: str):
-    result = supabase_client.table("wallets").select("*").eq("wallet", wallet).execute()
-    if result.data:
-        return result.data[0]
-    return None
+def add_loss(address: str):
+    wallet = supabase.table("wallets").select("losses").eq("address", address).execute()
+    if wallet.data:
+        losses = wallet.data[0]["losses"] + 1
+        supabase.table("wallets").update({"losses": losses}).eq("address", address).execute()
