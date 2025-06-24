@@ -1,21 +1,18 @@
 import os
 import logging
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, CallbackQuery
-from aiogram.fsm.strategy import FSMStrategy
-from aiogram.webhook.aiohttp_server import setup_application
 from aiogram.enums.parse_mode import ParseMode
+from aiogram.fsm.strategy import FSMStrategy
 from aiogram.types import Update
+from aiogram.webhook.aiohttp_server import setup_application
 from core.commands import (
     start_cmd,
-    add_wallet_cmd,
-    remove_wallet_cmd,
-    list_wallets_cmd,
-    profit_cmd,
-    handle_profit_callback,
-    finder_menu_cmd,
-    handle_finder_selection,
+    list_cmd,
+    rm_cmd,
+    handle_rm_callback,
+    add_router,
+    profit_router
 )
 from core.cron import setup_cron_jobs
 
@@ -31,24 +28,25 @@ dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 # FastAPI App
 app = FastAPI()
 
+# Webhook Endpoint
 @app.post("/")
 async def webhook_handler(update: dict):
     await dp.feed_update(bot=bot, update=Update(**update))
     return {"status": "ok"}
 
-# Commands
+# Router Setup
+dp.include_router(add_router)
+dp.include_router(profit_router)
+
+# Message Commands
 dp.message.register(start_cmd, F.text == "/start")
-dp.message.register(add_wallet_cmd, F.text.startswith("/add"))
-dp.message.register(remove_wallet_cmd, F.text.startswith("/rm"))
-dp.message.register(list_wallets_cmd, F.text == "/list")
-dp.message.register(profit_cmd, F.text.startswith("/profit"))
-dp.message.register(finder_menu_cmd, F.text == "/finder")
+dp.message.register(list_cmd, F.text == "/list")
+dp.message.register(rm_cmd, F.text.startswith("/rm"))
 
 # Callback Queries
-dp.callback_query.register(handle_profit_callback, F.data.startswith("profit:"))
-dp.callback_query.register(handle_finder_selection, F.data.in_({"moonbags", "scalping", "finder_off"}))
+dp.callback_query.register(handle_rm_callback, F.data.startswith("rm_"))
 
-# Startup
+# Startup / Shutdown
 @app.on_event("startup")
 async def on_startup():
     await bot.set_webhook(WEBHOOK_URL)
@@ -58,5 +56,5 @@ async def on_startup():
 async def on_shutdown():
     await bot.delete_webhook()
 
-# Webhook Setup for Railway
+# Webhook Setup (Railway Deployment)
 setup_application(app, dp, bot=bot)
