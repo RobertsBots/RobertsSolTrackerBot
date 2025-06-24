@@ -1,12 +1,12 @@
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from core.database import upsert_wallet
+from core.database import add_wallet
 
 router = Router()
 
 @router.message(Command("add"))
-async def handle_add_cmd(message: types.Message):
+async def add_wallet_cmd(message: types.Message):
     args = message.text.split()
 
     if len(args) != 3:
@@ -19,6 +19,9 @@ async def handle_add_cmd(message: types.Message):
     wallet = args[1]
     tag = args[2]
 
-    upsert_wallet(wallet, tag)
+    success = add_wallet(message.from_user.id, wallet, tag)
 
-    await message.answer(f"✅ Wallet `{wallet}` mit Tag `{tag}` hinzugefügt oder aktualisiert.", parse_mode="Markdown")
+    if success:
+        await message.answer(f"✅ Wallet `{wallet}` mit Tag `{tag}` hinzugefügt.", parse_mode="Markdown")
+    else:
+        await message.answer(f"⚠️ Wallet `{wallet}` ist bereits vorhanden.", parse_mode="Markdown")
