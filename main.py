@@ -1,52 +1,53 @@
+# main.py
+
 import os
 import logging
 import asyncio
 from fastapi import FastAPI, Request
 import uvicorn
-
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
-    Defaults,
+    Defaults
 )
 
-# === Core Imports ===
 from core.database import supabase_client
 from core.ui import start_command, handle_callback_query
 from core.wallet_tracker import handle_add_wallet, handle_remove_wallet, handle_list_wallets
 from core.pnlsystem import handle_profit_command, handle_profit_button
-from core.handlers.finder_menu import finder_command, finder_callback
+from core.handlers.finder import handle_finder_command, handle_finder_callback
+from core.cron import start_cron
 
-# === Logging Setup ===
+# === Logging ===
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 
-# === ENV Vars ===
+# === ENV Variablen ===
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
 
-# === Telegram Application Setup ===
+# === Application Setup ===
 defaults = Defaults(parse_mode="HTML")
 application = Application.builder().token(BOT_TOKEN).defaults(defaults).build()
 
-# === Command Handlers ===
+# === CommandHandler ===
 application.add_handler(CommandHandler("start", start_command))
 application.add_handler(CommandHandler("add", handle_add_wallet))
 application.add_handler(CommandHandler("rm", handle_remove_wallet))
 application.add_handler(CommandHandler("list", handle_list_wallets))
 application.add_handler(CommandHandler("profit", handle_profit_command))
-application.add_handler(CommandHandler("finder", finder_command))
+application.add_handler(CommandHandler("finder", handle_finder_command))
 
-# === CallbackQuery Handlers ===
+# === CallbackHandler ===
 application.add_handler(CallbackQueryHandler(handle_callback_query))
-application.add_handler(CallbackQueryHandler(handle_profit_button, pattern="^profit_"))
-application.add_handler(CallbackQueryHandler(finder_callback, pattern="^finder_"))
+application.add_handler(CallbackQueryHandler(handle_finder_callback))
 
-# === FastAPI Setup ===
+# === FastAPI Webhook ===
 app = FastAPI()
 
 @app.post("/")
@@ -56,13 +57,14 @@ async def telegram_webhook(request: Request):
     await application.update_queue.put(update)
     return {"ok": True}
 
-# === Bot Startup Routine ===
+# === Startup ===
 async def main():
-    logging.info("🚀 Initialisiere Telegram Bot mit Webhook...")
+    logging.info("Bot initialisiert...")
     await application.initialize()
     await application.bot.set_webhook(WEBHOOK_URL)
     await application.start()
-    logging.info("✅ Bot läuft über Webhook.")
+    start_cron(application)  # Startet Cronjob für SmartFinder
+    logging.info("Bot läuft mit Webhook.")
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
