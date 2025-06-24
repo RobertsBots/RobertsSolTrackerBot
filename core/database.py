@@ -39,3 +39,6 @@ def add_loss(address: str):
     if wallet.data:
         losses = wallet.data[0]["losses"] + 1
         supabase.table("wallets").update({"losses": losses}).eq("address", address).execute()
+
+# 🧩 Wichtig: für main.py kompatibel machen
+supabase_client = supabase
