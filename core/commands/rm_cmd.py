@@ -1,9 +1,9 @@
 from aiogram import types
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from database import list_wallets, remove_wallet
+from core.database import get_wallets, remove_wallet
 
-async def rm_cmd(message: types.Message):
-    wallets = list_wallets()
+async def remove_wallet_cmd(message: types.Message):
+    wallets = get_wallets(message.from_user.id)
     if not wallets:
         await message.answer("❌ Keine Wallets gefunden.")
         return
@@ -19,5 +19,5 @@ async def rm_cmd(message: types.Message):
 
 async def handle_rm_callback(callback_query: types.CallbackQuery):
     wallet = callback_query.data.replace("rm_", "")
-    remove_wallet(wallet)
+    remove_wallet(callback_query.from_user.id, wallet)
     await callback_query.message.edit_text(f"✅ Wallet `{wallet}` entfernt.", parse_mode="Markdown")
