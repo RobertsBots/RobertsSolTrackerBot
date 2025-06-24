@@ -18,7 +18,6 @@ from core.commands import (
     finder_menu_cmd,
     handle_finder_selection,
 )
-
 from core.cron import setup_cron_jobs
 
 # Logging
@@ -39,20 +38,20 @@ async def webhook_handler(update: dict):
     await dp.feed_update(bot=bot, update=Update(**update))
     return {"status": "ok"}
 
-# Message Commands
-dp.message.register(start_cmd, F.text == "/start")
+# Router-Registrierung (Commands)
+dp.include_router(start_cmd)
 dp.include_router(add_wallet_cmd)
 dp.message.register(remove_wallet_cmd, F.text.startswith("/rm"))
 dp.message.register(list_wallets_cmd, F.text == "/list")
 dp.include_router(profit_cmd_router)
 dp.message.register(finder_menu_cmd, F.text == "/finder")
 
-# Callback Queries
+# Callback-Registrierung
 dp.callback_query.register(handle_profit_callback, F.data.startswith("profit:"))
 dp.callback_query.register(handle_rm_callback, F.data.startswith("rm_"))
 dp.callback_query.register(handle_finder_selection, F.data.in_({"moonbags", "scalping", "finder_off"}))
 
-# Startup
+# Startup / Shutdown
 @app.on_event("startup")
 async def on_startup():
     await bot.set_webhook(WEBHOOK_URL)
