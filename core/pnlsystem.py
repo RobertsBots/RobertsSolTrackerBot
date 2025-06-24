@@ -1,46 +1,49 @@
-from core.database import update_pnl, add_win, add_loss
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-import re
-
-def parse_profit_input(text: str):
-    """Hilfsfunktion, um + / - Profit aus Text zu extrahieren"""
-    match = re.match(r"^/profit\s+([a-zA-Z0-9]+)\s+([+-]?\d+\.?\d*)", text)
-    if match:
-        address = match.group(1)
-        amount = float(match.group(2))
-        return address, amount
-    return None, None
+from core.database import update_pnl, add_win, add_loss, list_wallets
 
 async def handle_profit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Verarbeitet den Befehl /profit <WALLET> <+/-BETRAG>"""
-    if not context.args or len(context.args) < 2:
-        await update.message.reply_text("⚠️ Nutzung: /profit <wallet> <+/-betrag> (z. B. /profit ABC123 +50.0)")
+    if len(context.args) != 2:
+        await update.message.reply_text(
+            "❌ Format: /profit <wallet> <+betrag oder -betrag>"
+        )
         return
 
-    address = context.args[0]
-    profit_raw = context.args[1]
-
-    if not profit_raw.startswith(('+', '-')):
-        await update.message.reply_text("❌ Bitte gib ein `+` oder `-` vor dem Betrag an. Beispiel: `/profit WALLET +25.0`")
-        return
-
+    wallet = context.args[0]
     try:
-        amount = float(profit_raw)
+        amount = float(context.args[1])
     except ValueError:
-        await update.message.reply_text("❌ Ungültiger Betrag.")
+        await update.message.reply_text("❌ Betrag muss eine gültige Zahl sein, z. B. +1.23 oder -0.5")
         return
 
-    result = update_pnl(address, amount)
-    if not result:
+    success = update_pnl(wallet, amount)
+    if not success:
         await update.message.reply_text("❌ Wallet nicht gefunden.")
         return
 
     if amount > 0:
-        add_win(address)
-        emoji = "✅"
-    else:
-        add_loss(address)
-        emoji = "🔻"
+        add_win(wallet)
+    elif amount < 0:
+        add_loss(wallet)
 
-    await update.message.reply_text(f"{emoji} PnL für `{address}` wurde um {amount:+.2f} $ angepasst.", parse_mode="Markdown")
+    await update.message.reply_text(f"💰 PnL für <b>{wallet}</b> aktualisiert: {amount:+.2f} SOL")
+
+async def handle_profit_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    wallets = list_wallets()
+    if not wallets:
+        await query.edit_message_text("📭 Keine Wallets vorhanden.")
+        return
+
+    buttons = []
+    for wallet in wallets:
+        address = wallet["address"]
+        buttons.append([
+            InlineKeyboardButton(f"{wallet['tag']} ➕", callback_data=f"profit_add:{address}"),
+            InlineKeyboardButton(f"{wallet['tag']} ➖", callback_data=f"profit_sub:{address}")
+        ])
+
+    reply_markup = InlineKeyboardMarkup(buttons)
+    await query.edit_message_text("Wähle Wallet für manuelle PnL-Anpassung:", reply_markup=reply_markup)
