@@ -3,6 +3,6 @@ fastapi==0.111.0
 uvicorn==0.29.0
 requests==2.32.3
 python-dotenv==1.0.1
-supabase==2.3.5
+supabase==2.2.1
 httpx==0.25.2
-APScheduler==3.10.4
+apscheduler==3.10.4
