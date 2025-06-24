@@ -8,6 +8,6 @@ supafunc==0.2.0
 requests==2.31.0
 APScheduler==3.10.4
 SQLAlchemy==2.0.30
-pydantic==2.6.4
+pydantic==2.5.3
 yarl==1.9.4
 attrs==23.2.0
