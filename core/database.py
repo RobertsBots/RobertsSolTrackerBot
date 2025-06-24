@@ -44,3 +44,7 @@ def upsert_wallet(wallet: str, tag: str):
         return supabase.table("wallets").update({"tag": tag}).eq("wallet", wallet).execute()
     else:
         return insert_wallet(wallet, tag)
+
+
+def update_pnl(wallet: str, profit: float):
+    return set_profit(wallet, profit)
