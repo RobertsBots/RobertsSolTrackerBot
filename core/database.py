@@ -16,6 +16,13 @@ def add_wallet(user_id: int, wallet: str, tag: str = ""):
     supabase.table("wallets").insert({"user_id": user_id, "wallet": wallet, "tag": tag}).execute()
     return True
 
+def upsert_wallet(wallet: str, tag: str):
+    result = supabase.table("wallets").select("*").eq("wallet", wallet).execute()
+    if result.data:
+        supabase.table("wallets").update({"tag": tag}).eq("wallet", wallet).execute()
+    else:
+        supabase.table("wallets").insert({"wallet": wallet, "tag": tag}).execute()
+
 def remove_wallet(user_id: int, wallet: str):
     supabase.table("wallets").delete().eq("user_id", user_id).eq("wallet", wallet).execute()
 
