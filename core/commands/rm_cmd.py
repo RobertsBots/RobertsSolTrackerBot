@@ -1,20 +1,23 @@
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from core.database import list_wallets
+from aiogram import types
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from database import list_wallets, remove_wallet
 
-async def rm_cmd(message: Message):
+async def rm_cmd(message: types.Message):
     wallets = list_wallets()
     if not wallets:
-        await message.reply("🧾 Keine Wallets gefunden.")
+        await message.answer("❌ Keine Wallets gefunden.")
         return
 
-    keyboard = []
-    for wallet in wallets:
-        address = wallet["address"]
-        button = InlineKeyboardButton(
-            text=f"❌ {address[:6]}...{address[-4:]}",
-            callback_data=f"remove_wallet:{address}"
+    builder = InlineKeyboardBuilder()
+    for entry in wallets:
+        builder.button(
+            text=f"{entry['tag']} - {entry['wallet'][:5]}...{entry['wallet'][-4:]}",
+            callback_data=f"rm_{entry['wallet']}"
         )
-        keyboard.append([button])
+    keyboard = builder.adjust(1).as_markup()
+    await message.answer("🗑 Wähle eine Wallet zum Entfernen:", reply_markup=keyboard)
 
-    reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
-    await message.reply("🔻 Wähle eine Wallet zum Entfernen:", reply_markup=reply_markup)
+async def handle_rm_callback(callback_query: types.CallbackQuery):
+    wallet = callback_query.data.replace("rm_", "")
+    remove_wallet(wallet)
+    await callback_query.message.edit_text(f"✅ Wallet `{wallet}` entfernt.", parse_mode="Markdown")
