@@ -1,8 +1,10 @@
-aiogram==3.4.1
-aiohttp==3.9.5
-httpx==0.23.3
+aiogram==3.5.0
+httpx==0.24.0
 supabase==1.0.3
 supafunc==0.2.3
-SQLAlchemy==2.0.30
-APScheduler==3.10.4
 python-dotenv
+asyncio
+apscheduler==3.10.4
+pytz
+sqlalchemy==2.0.30
+greenlet==3.0.3
