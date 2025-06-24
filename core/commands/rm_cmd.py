@@ -17,6 +17,7 @@ async def remove_wallet_cmd(message: types.Message):
     keyboard = builder.adjust(1).as_markup()
     await message.answer("🗑 Wähle eine Wallet zum Entfernen:", reply_markup=keyboard)
 
+
 async def handle_rm_callback(callback_query: types.CallbackQuery):
     wallet = callback_query.data.replace("rm_", "")
     remove_wallet(callback_query.from_user.id, wallet)
