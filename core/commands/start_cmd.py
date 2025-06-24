@@ -1,11 +1,14 @@
 from aiogram import Router, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.markdown import hbold
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 router = Router()
 
-@router.message(commands=["start"])
+@router.message()
 async def start_cmd(message: types.Message):
+    if message.text != "/start":
+        return
+
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="📈 Track Wallet", callback_data="add_wallet"),
