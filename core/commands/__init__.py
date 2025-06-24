@@ -1,7 +1,7 @@
-from .start_cmd import start_cmd
+from .start_cmd import router as start_cmd
 from .add_cmd import router as add_wallet_cmd
 from .rm_cmd import rm_cmd, handle_rm_callback
-from .list_cmd import list_cmd as list_wallets_cmd
+from .list_cmd import list_cmd
 from .profit_cmd import router as profit_cmd_router, handle_profit_callback
 from .finder_cmd import finder_menu_cmd, handle_finder_selection
 
