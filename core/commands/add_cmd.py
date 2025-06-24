@@ -1,35 +1,24 @@
-from aiogram.types import Message
-from core.database import add_wallet
-from core.config import CHANNEL_ID
-from aiogram import Bot
+from aiogram import Router, types
+from aiogram.filters import Command
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from core.database import upsert_wallet
 
-async def add_cmd(message: Message, bot: Bot):
-    try:
-        args = message.text.split()
-        if len(args) < 3:
-            await message.reply("❌ Bitte nutze das Format:\n<code>/add WALLET TAG</code>")
-            return
+router = Router()
 
-        wallet = args[1]
-        tag = " ".join(args[2:])
+@router.message(Command("add"))
+async def handle_add_cmd(message: types.Message):
+    args = message.text.split()
 
-        success = add_wallet(wallet, tag)
-
-        if not success:
-            await message.reply("⚠️ Diese Wallet wird bereits getrackt.")
-            return
-
-        dex_url = f"https://dexscreener.com/solana/{wallet}"
-
-        await message.reply(f"✅ <b>Wallet hinzugefügt:</b>\n📬 <code>{wallet}</code>\n🏷️ Tag: <b>{tag}</b>")
-        await bot.send_message(
-            chat_id=CHANNEL_ID,
-            text=(
-                f"🆕 Neue Wallet hinzugefügt\n\n"
-                f"<code>{wallet}</code>\n"
-                f"🏷️ <b>{tag}</b>\n"
-                f"🔗 <a href='{dex_url}'>Dexscreener öffnen</a>"
-            )
+    if len(args) != 3:
+        await message.answer(
+            "❗️Falsche Nutzung von /add\n\nNutze:\n`/add <WALLET> <TAG>`",
+            parse_mode="Markdown",
         )
-    except Exception as e:
-        await message.reply(f"❌ Fehler beim Hinzufügen: {e}")
+        return
+
+    wallet = args[1]
+    tag = args[2]
+
+    upsert_wallet(wallet, tag)
+
+    await message.answer(f"✅ Wallet `{wallet}` mit Tag `{tag}` hinzugefügt oder aktualisiert.", parse_mode="Markdown")
