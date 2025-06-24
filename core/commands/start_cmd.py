@@ -12,7 +12,7 @@ async def start_cmd(message: Message):
             InlineKeyboardButton(text="💰 Add Profit", callback_data="add_profit")
         ],
         [
-            InlineKeyboardButton(text="🚀 SmartFinder", callback_data="toggle_finder")
+            InlineKeyboardButton(text="🛰️ SmartFinder", callback_data="smartfinder_menu")
         ]
     ])
 
