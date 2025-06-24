@@ -1,33 +1,29 @@
-from aiogram.types import Message
-from core.database import list_wallets
+from aiogram import types
+from database import list_wallets
+from utils import format_pnl, calculate_winrate
 
-def format_wallet_data(wallet):
-    address = wallet["address"]
-    tag = wallet.get("tag", "📄")
-    pnl = wallet.get("pnl", 0.0)
-    wins = wallet.get("wins", 0)
-    losses = wallet.get("losses", 0)
-    total = wins + losses
-    wr = f"{int(wins / total * 100)}%" if total > 0 else "N/A"
-    dex_link = f"https://dexscreener.com/solana/{address}"
-
-    pnl_str = f"<b>PnL:</b> {'🟢' if pnl >= 0 else '🔴'} {pnl:.2f} SOL"
-    wr_str = f"<b>WR:</b> {wins}/{total} ({wr})"
-
-    return f"""
-<b>{tag}</b> – <code>{address}</code>
-{pnl_str}
-{wr_str}
-<a href="{dex_link}">📊 Dexscreener</a>
-"""
-
-async def list_cmd(message: Message):
+async def list_cmd(message: types.Message):
     wallets = list_wallets()
     if not wallets:
-        await message.reply("📭 Noch keine Wallets getrackt.")
+        await message.answer("📭 Keine Wallets vorhanden.")
         return
 
-    chunks = [wallets[i:i+5] for i in range(0, len(wallets), 5)]
-    for chunk in chunks:
-        msg = "\n".join(format_wallet_data(w) for w in chunk)
-        await message.reply(msg)
+    response = "📋 *Getrackte Wallets:*\n\n"
+    for w in wallets:
+        wallet = w["wallet"]
+        tag = w.get("tag", "🏷️ Kein Tag")
+        profit = w.get("profit", 0.0)
+        wins = w.get("wins", 0)
+        losses = w.get("losses", 0)
+        winrate = calculate_winrate(wins, losses)
+
+        pnl_text = format_pnl(profit)
+        winrate_text = f"`WR({wins}/{wins+losses})`" if (wins + losses) > 0 else "`WR(-)`"
+
+        response += (
+            f"🧠 *{tag}*\n"
+            f"📟 `{wallet}`\n"
+            f"{winrate_text} – {pnl_text}\n\n"
+        )
+
+    await message.answer(response, parse_mode="Markdown")
