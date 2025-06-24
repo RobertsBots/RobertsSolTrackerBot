@@ -1,54 +1,46 @@
 import os
-import logging
-import requests
-from core.database import supabase_client
-from telegram import Bot
+import httpx
+from core.database import add_wallet
 from core.helpers import post_wallet_detection_message
 
 DUNE_API_KEY = os.getenv("DUNE_API_KEY")
-DUNE_QUERY_ID = "4632804"  # Deine Smart Wallet Finder Query
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = os.getenv("CHANNEL_ID")
+DUNE_QUERY_ID = "4632804"
+TELEGRAM_CHANNEL_ID = os.getenv("CHANNEL_ID")
 
-bot = Bot(token=BOT_TOKEN)
-logger = logging.getLogger(__name__)
+headers = {
+    "Content-Type": "application/json",
+    "x-dune-api-key": DUNE_API_KEY
+}
 
-async def run_smart_wallet_finder():
-    logger.info("🔎 Starte Smart Wallet Finder...")
-
+async def run_smart_finder():
     url = f"https://api.dune.com/api/v1/query/{DUNE_QUERY_ID}/results"
-    headers = {"x-dune-api-key": DUNE_API_KEY}
-
+    
     try:
-        response = requests.get(url, headers=headers)
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(url, headers=headers)
+
         data = response.json()
+        rows = data.get("result", {}).get("rows", [])
 
-        wallets = data.get("result", {}).get("rows", [])
-        if not wallets:
-            logger.warning("⚠️ Keine Wallets gefunden.")
-            return
+        for row in rows:
+            winrate = row.get("winrate", 0)
+            roi = row.get("roi", 0)
 
-        for wallet in wallets:
-            try:
-                winrate = float(wallet.get("winrate", 0))
-                roi = float(wallet.get("roi", 0))
-
-                if winrate < 70 or roi < 5:
-                    continue  # Nur starke Wallets
-
-                wallet_address = wallet.get("wallet")
-                existing = supabase_client.table("wallets").select("address").eq("address", wallet_address).execute()
-                if existing.data:
-                    continue  # Bereits getrackt
-
-                # Tag setzen & einfügen
+            if winrate >= 70 and roi >= 5:
+                address = row["wallet"]
                 tag = "🚀 AutoDetected"
-                supabase_client.table("wallets").insert({"address": wallet_address, "tag": tag}).execute()
+                added = add_wallet(address, tag)
 
-                await post_wallet_detection_message(bot, wallet_address, wallet, tag)
-
-            except Exception as inner_error:
-                logger.error(f"❌ Fehler beim Verarbeiten einer Wallet: {inner_error}")
+                if added:
+                    await post_wallet_detection_message(
+                        wallet=address,
+                        winrate=winrate,
+                        roi=roi,
+                        pnl=row.get("realized_pnl", 0),
+                        age=row.get("wallet_age_days", "?"),
+                        balance=row.get("sol_balance", 0),
+                        tag=tag
+                    )
 
     except Exception as e:
-        logger.error(f"❌ Fehler bei Dune API oder Supabase: {e}")
+        print(f"Fehler bei SmartFinder: {e}")
