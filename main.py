@@ -1,72 +1,62 @@
-# main.py
-
 import os
 import logging
-import asyncio
 from fastapi import FastAPI, Request
-import uvicorn
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    CallbackQueryHandler,
-    Defaults
+from aiogram import Bot, Dispatcher, F
+from aiogram.types import Message, CallbackQuery
+from aiogram.fsm.strategy import FSMStrategy
+from aiogram.webhook.aiohttp_server import setup_application
+from aiogram.enums.parse_mode import ParseMode
+from aiogram.types import Update
+from core.commands import (
+    start_cmd,
+    add_wallet_cmd,
+    remove_wallet_cmd,
+    list_wallets_cmd,
+    profit_cmd,
+    handle_profit_callback,
+    finder_menu_cmd,
+    handle_finder_selection,
 )
+from core.cron import setup_cron_jobs
 
-from core.database import supabase_client
-from core.ui import start_command, handle_callback_query
-from core.wallet_tracker import handle_add_wallet, handle_remove_wallet, handle_list_wallets
-from core.pnlsystem import handle_profit_command, handle_profit_button
-from core.handlers.finder import handle_finder_command, handle_finder_callback
-from core.cron import start_cron
+# Logging
+logging.basicConfig(level=logging.INFO)
 
-# === Logging ===
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
-)
-
-# === ENV Variablen ===
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+# Bot Setup
+TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-CHANNEL_ID = os.getenv("CHANNEL_ID")
+bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
-# === Application Setup ===
-defaults = Defaults(parse_mode="HTML")
-application = Application.builder().token(BOT_TOKEN).defaults(defaults).build()
-
-# === CommandHandler ===
-application.add_handler(CommandHandler("start", start_command))
-application.add_handler(CommandHandler("add", handle_add_wallet))
-application.add_handler(CommandHandler("rm", handle_remove_wallet))
-application.add_handler(CommandHandler("list", handle_list_wallets))
-application.add_handler(CommandHandler("profit", handle_profit_command))
-application.add_handler(CommandHandler("finder", handle_finder_command))
-
-# === CallbackHandler ===
-application.add_handler(CallbackQueryHandler(handle_callback_query))
-application.add_handler(CallbackQueryHandler(handle_finder_callback))
-
-# === FastAPI Webhook ===
+# FastAPI App
 app = FastAPI()
 
 @app.post("/")
-async def telegram_webhook(request: Request):
-    data = await request.json()
-    update = Update.de_json(data, application.bot)
-    await application.update_queue.put(update)
-    return {"ok": True}
+async def webhook_handler(update: dict):
+    await dp.feed_update(bot=bot, update=Update(**update))
+    return {"status": "ok"}
 
-# === Startup ===
-async def main():
-    logging.info("Bot initialisiert...")
-    await application.initialize()
-    await application.bot.set_webhook(WEBHOOK_URL)
-    await application.start()
-    start_cron(application)  # Startet Cronjob für SmartFinder
-    logging.info("Bot läuft mit Webhook.")
+# Commands
+dp.message.register(start_cmd, F.text == "/start")
+dp.message.register(add_wallet_cmd, F.text.startswith("/add"))
+dp.message.register(remove_wallet_cmd, F.text.startswith("/rm"))
+dp.message.register(list_wallets_cmd, F.text == "/list")
+dp.message.register(profit_cmd, F.text.startswith("/profit"))
+dp.message.register(finder_menu_cmd, F.text == "/finder")
 
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.create_task(main())
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# Callback Queries
+dp.callback_query.register(handle_profit_callback, F.data.startswith("profit:"))
+dp.callback_query.register(handle_finder_selection, F.data.in_({"moonbags", "scalping", "finder_off"}))
+
+# Startup
+@app.on_event("startup")
+async def on_startup():
+    await bot.set_webhook(WEBHOOK_URL)
+    setup_cron_jobs(dp, bot)
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    await bot.delete_webhook()
+
+# Webhook Setup for Railway
+setup_application(app, dp, bot=bot)
