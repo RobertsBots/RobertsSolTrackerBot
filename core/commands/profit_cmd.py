@@ -1,31 +1,37 @@
-from aiogram.types import Message
+from aiogram import Router, types
+from aiogram.filters import Command
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from core.database import update_pnl
-import re
 
-async def profit_cmd(message: Message):
-    parts = message.text.split()
-    if len(parts) != 3:
-        await message.reply(
-            "❗️Bitte verwende das Format:\n<code>/profit WALLET +/-BETRAG</code>\n\nBeispiel:\n<code>/profit ABC123 +1.5</code>"
+router = Router()
+
+@router.message(Command("profit"))
+async def handle_profit_cmd(message: types.Message):
+    args = message.text.split()
+    if len(args) != 3:
+        await message.answer(
+            "❗️Falsche Nutzung von /profit\n\nBitte nutze:\n`/profit <WALLET> <+/-BETRAG>`",
+            parse_mode="Markdown",
         )
         return
 
-    address = parts[1]
-    amount_str = parts[2]
-
-    if not re.match(r"^[+-]?\d+(\.\d+)?$", amount_str):
-        await message.reply("⚠️ Ungültiges Format für den Betrag. Bitte mit + oder – angeben.")
-        return
+    wallet, raw_amount = args[1], args[2]
 
     try:
-        amount = float(amount_str)
+        amount = float(raw_amount)
     except ValueError:
-        await message.reply("⚠️ Betrag muss eine gültige Zahl sein.")
+        await message.answer("❗️Ungültiger Betrag. Beispiel: `/profit ABC...XYZ +1.5`", parse_mode="Markdown")
         return
 
-    success = update_pnl(address, amount)
-    if success:
-        emoji = "🟢" if amount > 0 else "🔴"
-        await message.reply(f"{emoji} <b>{amount:+.2f} SOL</b> wurde der Wallet <code>{address}</code> gutgeschrieben.")
-    else:
-        await message.reply("❌ Wallet nicht gefunden.")
+    update_pnl(wallet, amount)
+
+    color = "🟢" if amount > 0 else "🔴"
+    await message.answer(f"{color} Profit für `{wallet}` aktualisiert: `{amount:+.2f} SOL`", parse_mode="Markdown")
+
+
+@router.callback_query(lambda c: c.data.startswith("profit_"))
+async def handle_profit_callback(callback_query: types.CallbackQuery):
+    await callback_query.message.edit_text(
+        "❗️Bitte sende den Profit-Wert manuell als Befehl im Format:\n`/profit <WALLET> <+/-BETRAG>`",
+        parse_mode="Markdown"
+    )
