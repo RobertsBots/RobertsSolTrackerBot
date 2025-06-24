@@ -1,48 +1,38 @@
-import os
 from supabase import create_client, Client
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def add_wallet(address: str, tag: str):
-    existing = supabase.table("wallets").select("address").eq("address", address).execute()
-    if existing.data:
-        return False
-    supabase.table("wallets").insert({
-        "address": address,
-        "tag": tag,
-        "pnl": 0.0,
-        "wins": 0,
-        "losses": 0
-    }).execute()
-    return True
+def insert_wallet(wallet: str, tag: str):
+    return supabase.table("wallets").insert({"wallet": wallet, "tag": tag}).execute()
 
-def remove_wallet(address: str):
-    supabase.table("wallets").delete().eq("address", address).execute()
+def remove_wallet(wallet: str):
+    return supabase.table("wallets").delete().eq("wallet", wallet).execute()
 
 def list_wallets():
-    result = supabase.table("wallets").select("*").execute()
-    return result.data if result.data else []
+    response = supabase.table("wallets").select("*").execute()
+    return response.data if response.data else []
 
-def update_pnl(address: str, amount: float):
-    wallet = supabase.table("wallets").select("*").eq("address", address).execute()
-    if not wallet.data:
-        return False
-    current_pnl = wallet.data[0].get("pnl", 0.0)
-    new_pnl = current_pnl + amount
-    supabase.table("wallets").update({"pnl": new_pnl}).eq("address", address).execute()
-    return True
+def set_profit(wallet: str, profit: float):
+    return supabase.table("wallets").update({"profit": profit}).eq("wallet", wallet).execute()
 
-def add_win(address: str):
-    wallet = supabase.table("wallets").select("wins").eq("address", address).execute()
-    if wallet.data:
-        wins = wallet.data[0].get("wins", 0) + 1
-        supabase.table("wallets").update({"wins": wins}).eq("address", address).execute()
+def get_profit(wallet: str):
+    result = supabase.table("wallets").select("profit").eq("wallet", wallet).execute()
+    return result.data[0]['profit'] if result.data else 0.0
 
-def add_loss(address: str):
-    wallet = supabase.table("wallets").select("losses").eq("address", address).execute()
-    if wallet.data:
-        losses = wallet.data[0].get("losses", 0) + 1
-        supabase.table("wallets").update({"losses": losses}).eq("address", address).execute()
+def get_wallet_tags():
+    result = supabase.table("wallets").select("wallet", "tag").execute()
+    return {item["wallet"]: item["tag"] for item in result.data} if result.data else {}
+
+def upsert_wallet(wallet: str, tag: str):
+    existing = supabase.table("wallets").select("wallet").eq("wallet", wallet).execute()
+    if existing.data:
+        return supabase.table("wallets").update({"tag": tag}).eq("wallet", wallet).execute()
+    else:
+        return insert_wallet(wallet, tag)
