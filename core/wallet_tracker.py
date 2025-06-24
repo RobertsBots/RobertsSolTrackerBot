@@ -1,36 +1,46 @@
 from telegram import Update
 from telegram.ext import ContextTypes
-from core.database import supabase_client
+from core.database import add_wallet, remove_wallet, list_wallets
 
-async def handle_list_wallets(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    result = supabase_client.table("wallets").select("*").execute()
-    
-    if not result.data:
-        await update.message.reply_text("ℹ️ Es werden derzeit keine Wallets getrackt.")
+async def handle_add_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if len(context.args) < 2:
+        await update.message.reply_text("❌ Bitte benutze /add <wallet> <tag>")
         return
 
-    response = "<b>📊 Getrackte Wallets:</b>\n"
+    wallet, tag = context.args[0], " ".join(context.args[1:])
+    success = add_wallet(wallet, tag)
 
-    for wallet in result.data:
-        address = wallet.get("address")
-        tag = wallet.get("tag")
-        pnl = wallet.get("pnl", 0)
+    if success:
+        await update.message.reply_text(f"✅ <b>{wallet}</b> mit Tag <b>{tag}</b> hinzugefügt.")
+    else:
+        await update.message.reply_text(f"⚠️ <b>{wallet}</b> wird bereits getrackt.")
+
+async def handle_remove_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("❌ Bitte benutze /rm <wallet>")
+        return
+
+    wallet = context.args[0]
+    remove_wallet(wallet)
+    await update.message.reply_text(f"🗑 Wallet <b>{wallet}</b> wurde entfernt.")
+
+async def handle_list_wallets(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    wallets = list_wallets()
+
+    if not wallets:
+        await update.message.reply_text("📭 Keine Wallets gefunden.")
+        return
+
+    message_lines = ["<b>📋 Getrackte Wallets:</b>\n"]
+
+    for wallet in wallets:
+        pnl = float(wallet.get("pnl", 0))
         wins = wallet.get("wins", 0)
         losses = wallet.get("losses", 0)
-        total = wins + losses
+        wr = f"{wins}/{wins+losses}" if wins + losses > 0 else "0/0"
+        color = "🟢" if pnl > 0 else "🔴" if pnl < 0 else "⚪️"
+        message_lines.append(
+            f"{color} <code>{wallet['address']}</code>\n🏷 {wallet['tag']} — WR({wr}) — PnL({pnl:+.2f} SOL)\n"
+        )
 
-        # Farben
-        pnl_color = "green" if pnl >= 0 else "red"
-        wr_color = "green" if wins >= losses else "red"
-
-        pnl_text = f"<b>PnL:</b> <span style='color:{pnl_color}'>{pnl:+.2f} SOL</span>"
-        wr_text = f"<b>WR:</b> <span style='color:{wr_color}'>{wins}/{total if total > 0 else 1}</span>"
-
-        response += f"""
-👛 <b>Wallet:</b> <code>{address}</code>
-🏷 <b>Tag:</b> {tag}
-{wr_text} | {pnl_text}
-———————————————
-"""
-
-    await update.message.reply_text(response, parse_mode="HTML")
+    await update.message.reply_text("\n".join(message_lines))
