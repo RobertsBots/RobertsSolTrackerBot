@@ -1,9 +1,9 @@
 from aiogram import types
-from database import list_wallets
-from utils import format_pnl, calculate_winrate
+from core.database import get_wallets
+from core.utils import format_pnl, calculate_winrate
 
-async def list_cmd(message: types.Message):
-    wallets = list_wallets()
+async def list_wallets_cmd(message: types.Message):
+    wallets = get_wallets(message.from_user.id)
     if not wallets:
         await message.answer("📭 Keine Wallets vorhanden.")
         return
@@ -12,7 +12,7 @@ async def list_cmd(message: types.Message):
     for w in wallets:
         wallet = w["wallet"]
         tag = w.get("tag", "🏷️ Kein Tag")
-        profit = w.get("profit", 0.0)
+        profit = w.get("pnl", 0.0)
         wins = w.get("wins", 0)
         losses = w.get("losses", 0)
         winrate = calculate_winrate(wins, losses)
