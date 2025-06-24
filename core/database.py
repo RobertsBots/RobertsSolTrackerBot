@@ -1,5 +1,5 @@
-from supabase import create_client, Client
 import os
+from supabase import create_client, Client
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -7,44 +7,46 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-# Kein proxy-Parameter, weil du supabase==2.1.1 nutzt
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-
-def insert_wallet(wallet: str, tag: str):
-    return supabase.table("wallets").insert({"wallet": wallet, "tag": tag}).execute()
-
-
-def remove_wallet(wallet: str):
-    return supabase.table("wallets").delete().eq("wallet", wallet).execute()
-
-
-def list_wallets():
-    response = supabase.table("wallets").select("*").execute()
-    return response.data if response.data else []
-
-
-def set_profit(wallet: str, profit: float):
-    return supabase.table("wallets").update({"profit": profit}).eq("wallet", wallet).execute()
-
-
-def get_profit(wallet: str):
-    result = supabase.table("wallets").select("profit").eq("wallet", wallet).execute()
-    return result.data[0]['profit'] if result.data else 0.0
-
-
-def get_wallet_tags():
-    result = supabase.table("wallets").select("wallet", "tag").execute()
-    return {item["wallet"]: item["tag"] for item in result.data} if result.data else {}
-
-
-def upsert_wallet(wallet: str, tag: str):
-    existing = supabase.table("wallets").select("wallet").eq("wallet", wallet).execute()
+def add_wallet(user_id: int, wallet: str, tag: str = ""):
+    existing = supabase.table("wallets").select("*").eq("wallet", wallet).eq("user_id", user_id).execute()
     if existing.data:
-        return supabase.table("wallets").update({"tag": tag}).eq("wallet", wallet).execute()
+        return False
+    supabase.table("wallets").insert({"user_id": user_id, "wallet": wallet, "tag": tag}).execute()
+    return True
+
+def remove_wallet(user_id: int, wallet: str):
+    supabase.table("wallets").delete().eq("user_id", user_id).eq("wallet", wallet).execute()
+
+def get_wallets(user_id: int):
+    result = supabase.table("wallets").select("*").eq("user_id", user_id).execute()
+    return result.data
+
+def get_all_wallets():
+    result = supabase.table("wallets").select("*").execute()
+    return result.data
+
+def update_pnl(wallet: str, amount: float):
+    result = supabase.table("wallets").select("pnl", "wins", "losses").eq("wallet", wallet).execute()
+    if not result.data:
+        return
+    current = result.data[0]
+    pnl = current.get("pnl", 0) + amount
+    wins = current.get("wins", 0)
+    losses = current.get("losses", 0)
+    if amount > 0:
+        wins += 1
     else:
-        return insert_wallet(wallet, tag)
+        losses += 1
+    supabase.table("wallets").update({"pnl": pnl, "wins": wins, "losses": losses}).eq("wallet", wallet).execute()
 
+def reset_wallets():
+    supabase.table("wallets").delete().neq("wallet", "").execute()
 
-def update_pnl(wallet: str, profit: float):
-    return set_profit(wallet, profit)
+def set_wallets(wallets):
+    for entry in wallets:
+        supabase.table("wallets").insert(entry).execute()
+
+def update_tag(wallet: str, new_tag: str):
+    supabase.table("wallets").update({"tag": new_tag}).eq("wallet", wallet).execute()
