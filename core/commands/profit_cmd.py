@@ -6,7 +6,7 @@ from core.database import update_pnl
 router = Router()
 
 @router.message(Command("profit"))
-async def handle_profit_cmd(message: types.Message):
+async def profit_cmd(message: types.Message):
     args = message.text.split()
     if len(args) != 3:
         await message.answer(
@@ -29,7 +29,7 @@ async def handle_profit_cmd(message: types.Message):
     await message.answer(f"{color} Profit für `{wallet}` aktualisiert: `{amount:+.2f} SOL`", parse_mode="Markdown")
 
 
-@router.callback_query(lambda c: c.data.startswith("profit_"))
+@router.callback_query(lambda c: c.data.startswith("profit:"))
 async def handle_profit_callback(callback_query: types.CallbackQuery):
     await callback_query.message.edit_text(
         "❗️Bitte sende den Profit-Wert manuell als Befehl im Format:\n`/profit <WALLET> <+/-BETRAG>`",
