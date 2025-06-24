@@ -1,66 +1,45 @@
+from datetime import datetime
 import json
-import os
+import httpx
 
-WALLETS_FILE = "data/wallets.json"
-FINDER_STATUS_FILE = "data/finder_status.json"
+def shorten_address(address: str) -> str:
+    return f"{address[:4]}...{address[-4:]}"
 
-def ensure_file_exists(path, default):
-    if not os.path.exists(path):
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
-            json.dump(default, f)
+def format_sol(value: float) -> str:
+    return f"{value:.2f} ◎"
 
-def load_json(path, default):
-    ensure_file_exists(path, default)
-    with open(path, "r") as f:
-        return json.load(f)
+def format_pnl(value: float) -> str:
+    emoji = "🟢" if value >= 0 else "🔴"
+    return f"{emoji} {value:+.2f}◎"
 
-def save_json(path, data):
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
+def generate_dexscreener_link(token_address: str) -> str:
+    return f"https://dexscreener.com/solana/{token_address}"
 
-def add_wallet_to_tracking(wallet, tag="💼 Manual"):
-    data = load_json(WALLETS_FILE, {})
-    if wallet not in data:
-        data[wallet] = {"tag": tag, "pnl": 0, "wins": 0, "losses": 0}
-        save_json(WALLETS_FILE, data)
-        return True
-    return False
+def get_timestamp() -> str:
+    return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
 
-def remove_wallet_from_tracking(wallet):
-    data = load_json(WALLETS_FILE, {})
-    if wallet in data:
-        del data[wallet]
-        save_json(WALLETS_FILE, data)
-        return True
-    return False
+async def fetch_wallet_data(wallet: str) -> dict:
+    url = f"https://api.solscan.io/account/tokens?account={wallet}"
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url)
+            response.raise_for_status()
+            return response.json()
+        except Exception:
+            return {}
 
-def get_tracked_wallets_with_stats():
-    return load_json(WALLETS_FILE, {})
+def parse_wallet_trade(data: dict) -> str:
+    try:
+        token = data.get("tokenSymbol", "UNKNOWN")
+        amount = float(data.get("tokenAmount", {}).get("uiAmount", 0))
+        return f"{token} ({amount:.2f})"
+    except Exception:
+        return "ParseError"
 
-def set_manual_profit(wallet, profit):
-    data = load_json(WALLETS_FILE, {})
-    if wallet in data:
-        data[wallet]["pnl"] += profit
-        save_json(WALLETS_FILE, data)
-        return True
-    return False
-
-def increment_win(wallet):
-    data = load_json(WALLETS_FILE, {})
-    if wallet in data:
-        data[wallet]["wins"] += 1
-        save_json(WALLETS_FILE, data)
-
-def increment_loss(wallet):
-    data = load_json(WALLETS_FILE, {})
-    if wallet in data:
-        data[wallet]["losses"] += 1
-        save_json(WALLETS_FILE, data)
-
-def get_finder_status():
-    return load_json(FINDER_STATUS_FILE, {"enabled": False, "mode": None})
-
-def toggle_smart_finder(enabled, mode=None):
-    status = {"enabled": enabled, "mode": mode}
-    save_json(FINDER_STATUS_FILE, status)
+def colorize_winrate(wins: int, losses: int) -> str:
+    total = wins + losses
+    if total == 0:
+        return "WR(0/0)"
+    winrate = int((wins / total) * 100)
+    emoji = "🟢" if winrate >= 60 else "🔴"
+    return f"{emoji} WR({wins}/{total})"
