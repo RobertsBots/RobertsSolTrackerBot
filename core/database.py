@@ -57,3 +57,17 @@ def set_wallets(wallets):
 
 def update_tag(wallet: str, new_tag: str):
     supabase.table("wallets").update({"tag": new_tag}).eq("wallet", wallet).execute()
+
+# NEU: Finder Mode speichern
+def set_finder_mode(user_id: int, mode: str):
+    existing = supabase.table("finder_settings").select("*").eq("user_id", user_id).execute()
+    if existing.data:
+        supabase.table("finder_settings").update({"mode": mode}).eq("user_id", user_id).execute()
+    else:
+        supabase.table("finder_settings").insert({"user_id": user_id, "mode": mode}).execute()
+
+def get_finder_mode(user_id: int) -> str:
+    result = supabase.table("finder_settings").select("mode").eq("user_id", user_id).execute()
+    if result.data:
+        return result.data[0]["mode"]
+    return "off"
