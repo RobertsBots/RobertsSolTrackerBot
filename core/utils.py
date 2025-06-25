@@ -1,5 +1,4 @@
 from datetime import datetime
-import json
 import httpx
 
 def shorten_address(address: str) -> str:
@@ -44,8 +43,7 @@ def colorize_winrate(wins: int, losses: int) -> str:
     emoji = "🟢" if winrate >= 60 else "🔴"
     return f"{emoji} WR({wins}/{total})"
 
+# Optional: Falls du woanders noch die reine Zahl brauchst
 def calculate_winrate(wins: int, losses: int) -> float:
     total = wins + losses
-    if total == 0:
-        return 0.0
-    return (wins / total) * 100
+    return round((wins / total) * 100, 2) if total > 0 else 0.0
