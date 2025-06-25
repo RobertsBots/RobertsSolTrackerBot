@@ -1,5 +1,5 @@
 import logging
-from telegram import Bot
+from aiogram import Bot
 
 logger = logging.getLogger(__name__)
 
