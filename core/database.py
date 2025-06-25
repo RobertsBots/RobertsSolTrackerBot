@@ -9,11 +9,19 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def add_wallet(user_id: int, wallet: str, tag: str = ""):
-    existing = supabase.table("wallets").select("*").eq("wallet", wallet).eq("user_id", user_id).execute()
+def add_wallet(user_id: int, wallet: str, tag: str = "") -> bool:
+    existing = supabase.table("wallets").select("*") \
+        .eq("wallet", wallet).eq("user_id", user_id).execute()
     if existing.data:
         return False
-    supabase.table("wallets").insert({"user_id": user_id, "wallet": wallet, "tag": tag}).execute()
+    supabase.table("wallets").insert({
+        "user_id": user_id,
+        "wallet": wallet,
+        "tag": tag,
+        "pnl": 0.0,
+        "wins": 0,
+        "losses": 0
+    }).execute()
     return True
 
 def upsert_wallet(wallet: str, tag: str):
@@ -21,10 +29,17 @@ def upsert_wallet(wallet: str, tag: str):
     if result.data:
         supabase.table("wallets").update({"tag": tag}).eq("wallet", wallet).execute()
     else:
-        supabase.table("wallets").insert({"wallet": wallet, "tag": tag}).execute()
+        supabase.table("wallets").insert({
+            "wallet": wallet,
+            "tag": tag,
+            "pnl": 0.0,
+            "wins": 0,
+            "losses": 0
+        }).execute()
 
 def remove_wallet(user_id: int, wallet: str):
-    supabase.table("wallets").delete().eq("user_id", user_id).eq("wallet", wallet).execute()
+    supabase.table("wallets").delete() \
+        .eq("user_id", user_id).eq("wallet", wallet).execute()
 
 def get_wallets(user_id: int):
     result = supabase.table("wallets").select("*").eq("user_id", user_id).execute()
@@ -35,18 +50,23 @@ def get_all_wallets():
     return result.data
 
 def update_pnl(wallet: str, amount: float):
-    result = supabase.table("wallets").select("pnl", "wins", "losses").eq("wallet", wallet).execute()
+    result = supabase.table("wallets").select("pnl", "wins", "losses") \
+        .eq("wallet", wallet).execute()
     if not result.data:
         return
     current = result.data[0]
-    pnl = current.get("pnl", 0) + amount
+    pnl = current.get("pnl", 0.0) + amount
     wins = current.get("wins", 0)
     losses = current.get("losses", 0)
     if amount > 0:
         wins += 1
     else:
         losses += 1
-    supabase.table("wallets").update({"pnl": pnl, "wins": wins, "losses": losses}).eq("wallet", wallet).execute()
+    supabase.table("wallets").update({
+        "pnl": pnl,
+        "wins": wins,
+        "losses": losses
+    }).eq("wallet", wallet).execute()
 
 def reset_wallets():
     supabase.table("wallets").delete().neq("wallet", "").execute()
@@ -57,17 +77,3 @@ def set_wallets(wallets):
 
 def update_tag(wallet: str, new_tag: str):
     supabase.table("wallets").update({"tag": new_tag}).eq("wallet", wallet).execute()
-
-# NEU: Finder Mode speichern
-def set_finder_mode(user_id: int, mode: str):
-    existing = supabase.table("finder_settings").select("*").eq("user_id", user_id).execute()
-    if existing.data:
-        supabase.table("finder_settings").update({"mode": mode}).eq("user_id", user_id).execute()
-    else:
-        supabase.table("finder_settings").insert({"user_id": user_id, "mode": mode}).execute()
-
-def get_finder_mode(user_id: int) -> str:
-    result = supabase.table("finder_settings").select("mode").eq("user_id", user_id).execute()
-    if result.data:
-        return result.data[0]["mode"]
-    return "off"
