@@ -43,3 +43,9 @@ def colorize_winrate(wins: int, losses: int) -> str:
     winrate = int((wins / total) * 100)
     emoji = "🟢" if winrate >= 60 else "🔴"
     return f"{emoji} WR({wins}/{total})"
+
+def calculate_winrate(wins: int, losses: int) -> float:
+    total = wins + losses
+    if total == 0:
+        return 0.0
+    return (wins / total) * 100
