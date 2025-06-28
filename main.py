@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Bot Setup
 TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+WEBHOOK_URL = f"https://robertssoltrackerbot-production.up.railway.app/{TOKEN}"
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
@@ -56,7 +56,7 @@ async def on_shutdown(app):
     await bot.delete_webhook()
     logging.info("🛑 Webhook entfernt.")
 
-# AIOHTTP App (NICHT FastAPI!)
+# AIOHTTP App
 app = web.Application()
 app.on_startup.append(on_startup)
 app.on_shutdown.append(on_shutdown)
@@ -68,8 +68,8 @@ async def handle(request):
     await dp.feed_update(bot, update)
     return web.Response(text="OK")
 
-# Route einrichten
-app.router.add_post("/", handle)
+# 🚨 Wichtig: POST Route mit /<TOKEN>
+app.router.add_post(f"/{TOKEN}", handle)
 
 # Setup Aiogram Webhook
 setup_application(app, dp, bot=bot)
