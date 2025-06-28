@@ -1,7 +1,8 @@
+# core/commands/add_cmd.py
+
 import logging
 from aiogram import Router, types
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from core.database import add_wallet
 
 logger = logging.getLogger(__name__)
