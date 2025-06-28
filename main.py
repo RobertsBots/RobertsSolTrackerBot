@@ -21,10 +21,10 @@ from core.commands import (
 )
 from core.cron import setup_cron_jobs
 
-# Logging
+# Logging aktivieren
 logging.basicConfig(level=logging.INFO)
 
-# Bot Setup
+# Bot-Setup
 TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 bot = Bot(
@@ -33,15 +33,16 @@ bot = Bot(
 )
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
-# FastAPI App mit Lifespan-Kontext
+# FastAPI App
 app = FastAPI()
 
+# Webhook Endpoint
 @app.post("/")
 async def webhook_handler(update: dict):
     await dp.feed_update(bot=bot, update=Update(**update))
     return {"status": "ok"}
 
-# Router Setup
+# Routings einbinden
 dp.include_router(start_cmd)
 dp.include_router(add_wallet_cmd)
 dp.include_router(profit_cmd_router)
@@ -51,12 +52,12 @@ dp.message.register(remove_wallet_cmd, F.text.startswith("/rm"))
 dp.message.register(list_wallets_cmd, F.text == "/list")
 dp.message.register(finder_menu_cmd, F.text == "/finder")
 
-# Callback Queries
+# Callback Handler
 dp.callback_query.register(handle_profit_callback, F.data.startswith("profit:"))
 dp.callback_query.register(handle_rm_callback, F.data.startswith("rm_"))
 dp.callback_query.register(handle_finder_selection, F.data.in_({"moonbags", "scalpbags", "finder_off"}))
 
-# Lifespan Events (neu statt on_event)
+# Lifespan Events
 async def on_startup():
     await bot.set_webhook(WEBHOOK_URL)
     setup_cron_jobs(dp, bot)
@@ -64,5 +65,5 @@ async def on_startup():
 async def on_shutdown():
     await bot.delete_webhook()
 
-# Webhook Setup mit Lifespan
+# Webhook Setup mit FastAPI + aiogram
 setup_application(app, dp, bot=bot, on_startup=on_startup, on_shutdown=on_shutdown)
