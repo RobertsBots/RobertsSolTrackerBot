@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 # Bot Setup
 # ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = "https://robertstracker-production.up.railway.app/webhook"
+WEBHOOK_URL = f"https://robertstracker-production.up.railway.app/{TOKEN}"
 
 bot = Bot(
     token=TOKEN,
@@ -100,8 +100,15 @@ async def handle(request):
         logger.exception("❌ Fehler im Webhook-Handler:")
         return web.Response(status=500, text="Webhook Error")
 
-# Telegram Webhook-Route → jetzt korrekt!
-app.router.add_post("/webhook", handle)
+# Telegram Webhook-Route
+app.router.add_post(f"/{TOKEN}", handle)
 
 # Dispatcher an AIOHTTP binden
 setup_application(app, dp, bot=bot)
+
+# ------------------------------------------------
+# 🚀 Explizit Webserver starten (für Railway)
+# ------------------------------------------------
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
