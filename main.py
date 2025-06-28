@@ -1,4 +1,5 @@
 # main.py
+
 import os
 import logging
 from aiohttp import web
@@ -22,32 +23,56 @@ from core.commands import (
 )
 from core.cron import setup_cron_jobs
 
+# ------------------------------------------------
 # Logging Setup
-logging.basicConfig(level=logging.INFO)
+# ------------------------------------------------
+DEBUG = os.getenv("DEBUG", "False") == "True"
+
+logging.basicConfig(
+    level=logging.DEBUG if DEBUG else logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
+# ------------------------------------------------
 # Bot Setup
+# ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = f"https://robertssoltrackerbot-production.up.railway.app/{TOKEN}"
-bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+
+bot = Bot(
+    token=TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
+# ------------------------------------------------
 # Router Setup
+# ------------------------------------------------
 dp.include_router(start_cmd)
 dp.include_router(add_wallet_cmd)
 dp.include_router(profit_cmd_router)
 
+# ------------------------------------------------
 # Message Commands
+# ------------------------------------------------
 dp.message.register(remove_wallet_cmd, F.text.startswith("/rm"))
 dp.message.register(list_wallets_cmd, F.text == "/list")
 dp.message.register(finder_menu_cmd, F.text == "/finder")
 
+# ------------------------------------------------
 # Callback Queries
+# ------------------------------------------------
 dp.callback_query.register(handle_profit_callback, F.data.startswith("profit:"))
 dp.callback_query.register(handle_rm_callback, F.data.startswith("rm_"))
-dp.callback_query.register(handle_finder_selection, F.data.in_({"moonbags", "scalpbags", "finder_off"}))
+dp.callback_query.register(
+    handle_finder_selection,
+    F.data.in_({"moonbags", "scalpbags", "finder_off"})
+)
 
-# Webhook-Events
+# ------------------------------------------------
+# Webhook Lifecycle Events
+# ------------------------------------------------
 async def on_startup(app):
     await bot.set_webhook(WEBHOOK_URL)
     setup_cron_jobs(dp, bot)
@@ -57,12 +82,14 @@ async def on_shutdown(app):
     await bot.delete_webhook()
     logger.info("🛑 Webhook entfernt.")
 
-# AIOHTTP App
+# ------------------------------------------------
+# AIOHTTP Webserver Setup
+# ------------------------------------------------
 app = web.Application()
 app.on_startup.append(on_startup)
 app.on_shutdown.append(on_shutdown)
 
-# Webhook-Handler mit Logging
+# Webhook-Handler mit Logging & Fehlerausgabe
 async def handle(request):
     try:
         data = await request.json()
@@ -71,10 +98,10 @@ async def handle(request):
         return web.Response(text="OK")
     except Exception as e:
         logger.exception("❌ Fehler im Webhook-Handler:")
-        return web.Response(status=500)
+        return web.Response(status=500, text="Webhook Error")
 
-# POST-Route für Telegram Webhook
+# Telegram Webhook-Route
 app.router.add_post(f"/{TOKEN}", handle)
 
-# Setup Aiogram Webhook App
+# Dispatcher an AIOHTTP binden
 setup_application(app, dp, bot=bot)
