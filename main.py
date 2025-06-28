@@ -47,9 +47,9 @@ bot = Bot(
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
 # ------------------------------------------------
-# Router Setup (korrekt!)
+# Router Setup (✅ korrekt!)
 # ------------------------------------------------
-dp.include_router(start_cmd.router)
+dp.include_router(start_cmd)
 dp.include_router(add_wallet_cmd)
 dp.include_router(profit_cmd_router)
 
