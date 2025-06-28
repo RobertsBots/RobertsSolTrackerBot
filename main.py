@@ -5,8 +5,8 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.enums.parse_mode import ParseMode
 from aiogram.fsm.strategy import FSMStrategy
-from aiogram.types import Update
 from aiogram.client.default import DefaultBotProperties
+from aiogram.types import Update
 
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
@@ -38,11 +38,13 @@ bot = Bot(
 )
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
-# ✅ Haupt-Router laden
+# ------------------------------------------------
+# Router Setup (zentraler Router!)
+# ------------------------------------------------
 dp.include_router(main_router)
 
 # ------------------------------------------------
-# FastAPI with Lifespan Events
+# FastAPI mit Lifespan
 # ------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
