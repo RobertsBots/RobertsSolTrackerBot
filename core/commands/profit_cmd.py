@@ -1,8 +1,10 @@
+import logging
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from core.database import update_pnl
 
+logger = logging.getLogger(__name__)
 router = Router()
 
 @router.message(Command("profit"))
@@ -24,10 +26,9 @@ async def profit_cmd(message: types.Message):
         return
 
     update_pnl(wallet, amount)
-
     color = "🟢" if amount > 0 else "🔴"
     await message.answer(f"{color} Profit für `{wallet}` aktualisiert: `{amount:+.2f} SOL`", parse_mode="Markdown")
-
+    logger.info(f"Profit gesetzt: {wallet} → {amount} – User {message.from_user.id}")
 
 @router.callback_query(lambda c: c.data.startswith("profit:"))
 async def handle_profit_callback(callback_query: types.CallbackQuery):
