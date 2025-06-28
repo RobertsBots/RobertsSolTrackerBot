@@ -1,54 +1,38 @@
 # core/commands/finder_cmd.py
 
-import logging
 from aiogram import Router, types, F
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-from aiogram.filters.callback_data import CallbackData
+from aiogram.types import CallbackQuery
 from core.database import set_finder_mode
 from core.alerts import notify_user
 
-logger = logging.getLogger(__name__)
 router = Router()
-
-class FinderCallback(CallbackData, prefix="finder"):
-    action: str
 
 @router.message(F.text == "/finder")
 async def finder_menu_cmd(message: types.Message):
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🌕 Moonbags", callback_data=FinderCallback(action="moonbags").pack()),
-            InlineKeyboardButton(text="⚡️ Scalping Bags", callback_data=FinderCallback(action="scalpbags").pack())
+            types.InlineKeyboardButton(text="🌕 Moonbags", callback_data="moonbags"),
+            types.InlineKeyboardButton(text="⚡️ Scalping Bags", callback_data="scalpbags")
         ],
         [
-            InlineKeyboardButton(text="❌ Deaktivieren", callback_data=FinderCallback(action="finder_off").pack())
+            types.InlineKeyboardButton(text="🛑 Deaktivieren", callback_data="finder_off")
         ]
     ])
-    await message.answer(
-        "🔎 *Wähle deinen Smart Wallet Finder Modus:*",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
+    await message.answer("📡 <b>Smart Wallet Finder</b>\nWähle deinen Modus:", reply_markup=keyboard)
 
-@router.callback_query(FinderCallback.filter())
-async def handle_finder_selection(callback: CallbackQuery, callback_data: FinderCallback):
-    mode = callback_data.action
-    user_id = callback.from_user.id
+@router.callback_query(F.data.in_({"moonbags", "scalpbags", "finder_off"}))
+async def handle_finder_selection(query: CallbackQuery):
+    user_id = query.from_user.id
+    selection = query.data
 
-    if mode == "moonbags":
-        set_finder_mode(user_id, "moonbags")
-        await callback.message.edit_text("🌕 Modus *Moonbags* aktiviert.", parse_mode="Markdown")
-        logger.info(f"Finder-Modus: Moonbags – User {user_id}")
-    elif mode == "scalpbags":
-        set_finder_mode(user_id, "scalpbags")
-        await callback.message.edit_text("⚡️ Modus *Scalping Bags* aktiviert.", parse_mode="Markdown")
-        logger.info(f"Finder-Modus: Scalping – User {user_id}")
-    elif mode == "finder_off":
-        set_finder_mode(user_id, "off")
-        await callback.message.edit_text("🔕 Smart Wallet Finder wurde *deaktiviert*.", parse_mode="Markdown")
-        logger.info(f"Finder-Modus: OFF – User {user_id}")
-    else:
-        await notify_user(user_id, "❌ Unbekannte Auswahl – bitte erneut versuchen.")
-        logger.warning(f"Unbekannter Finder-Modus: {mode} – User {user_id}")
+    if selection == "finder_off":
+        await set_finder_mode(user_id, "off")
+        await query.message.edit_text("🛑 Smart Finder deaktiviert.")
+    elif selection == "moonbags":
+        await set_finder_mode(user_id, "moonbags")
+        await query.message.edit_text("✅ Finder aktiviert: 🌕 Moonbags")
+    elif selection == "scalpbags":
+        await set_finder_mode(user_id, "scalpbags")
+        await query.message.edit_text("✅ Finder aktiviert: ⚡️ Scalping Bags")
 
-    await callback.answer()
+    await notify_user(user_id, f"🎯 Finder-Modus gesetzt: <b>{selection}</b>")
