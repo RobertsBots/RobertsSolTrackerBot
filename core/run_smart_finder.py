@@ -1,42 +1,56 @@
+import os
+import httpx
 import logging
-from core.database import get_finder_mode, get_tracked_wallets, add_wallet
+from core.database import add_wallet
 from core.helpers import post_wallet_detection_message
-from core.finder import fetch_smart_wallets
+from aiogram import Bot
+
+DUNE_API_KEY = os.getenv("DUNE_API_KEY")
+DUNE_QUERY_ID = "4632804"
+TELEGRAM_CHANNEL_ID = os.getenv("CHANNEL_ID")
+
+headers = {
+    "Content-Type": "application/json",
+    "x-dune-api-key": DUNE_API_KEY
+}
 
 logger = logging.getLogger(__name__)
 
-async def run_smart_wallet_finder(dp, bot):
+async def run_smart_wallet_finder(bot: Bot):
+    url = f"https://api.dune.com/api/v1/query/{DUNE_QUERY_ID}/results"
+    
     try:
-        mode = await get_finder_mode()
-        if not mode:
-            logger.info("🔎 SmartFinder ist deaktiviert. Kein Scan durchgeführt.")
-            return
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(url, headers=headers)
 
-        logger.info(f"🛰 SmartFinder aktiv im Modus: {mode.upper()}")
+        data = response.json()
+        rows = data.get("result", {}).get("rows", [])
 
-        # Smart Wallets von Dune holen
-        smart_wallets = await fetch_smart_wallets(mode)
+        for row in rows:
+            winrate = row.get("winrate", 0)
+            roi = row.get("roi", 0)
 
-        if not smart_wallets:
-            logger.info("❌ Keine neuen Smart Wallets gefunden.")
-            return
+            if winrate >= 70 and roi >= 5:
+                wallet_data = {
+                    "address": row.get("wallet", ""),
+                    "winrate": winrate,
+                    "roi": roi,
+                    "pnl": row.get("realized_pnl", 0),
+                    "account_age": row.get("wallet_age_days", "?"),
+                    "sol_balance": row.get("sol_balance", 0)
+                }
 
-        tracked_wallets = await get_tracked_wallets()
-        tracked_addresses = [w["wallet"] for w in tracked_wallets]
+                added = add_wallet(user_id=0, wallet=wallet_data["address"], tag="🚀 AutoDetected")
 
-        for wallet in smart_wallets:
-            if wallet["address"] in tracked_addresses:
-                continue  # bereits getrackt
-
-            await add_wallet(wallet["address"], tag="🚀 AutoDetected")
-
-            await post_wallet_detection_message(
-                bot=bot,
-                dp=dp,
-                wallet=wallet
-            )
-
-            logger.info(f"✅ Neue Smart Wallet getrackt: {wallet['address']}")
+                if added:
+                    await post_wallet_detection_message(
+                        bot=bot,
+                        channel_id=TELEGRAM_CHANNEL_ID,
+                        wallet=wallet_data
+                    )
+                    logger.info(f"✅ Neue Wallet automatisch hinzugefügt: {wallet_data['address']}")
+                else:
+                    logger.info(f"⚠️ Wallet bereits bekannt: {wallet_data['address']}")
 
     except Exception as e:
-        logger.exception(f"⚠️ Fehler im SmartFinder: {str(e)}")
+        logger.error(f"❌ Fehler beim Abrufen der Smart Wallets: {e}")
