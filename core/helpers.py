@@ -1,11 +1,11 @@
 # core/helpers.py
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.constants import ParseMode
-from telegram.ext import ContextTypes
 import logging
+from aiogram import Bot
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.enums import ParseMode
 
-async def post_wallet_detection_message(context: ContextTypes.DEFAULT_TYPE, channel_id: str, wallet: dict):
+async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict):
     try:
         winrate = wallet.get("winrate", "N/A")
         roi = wallet.get("roi", "N/A")
@@ -26,15 +26,17 @@ async def post_wallet_detection_message(context: ContextTypes.DEFAULT_TYPE, chan
 <b>🏷️ Tag:</b> 🚀 AutoDetected
         """
 
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📊 Auf Birdeye", url=f"https://birdeye.so/address/{address}?chain=solana")]
-        ])
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="📊 Auf Birdeye", url=f"https://birdeye.so/address/{address}?chain=solana")]
+            ]
+        )
 
-        await context.bot.send_message(
+        await bot.send_message(
             chat_id=channel_id,
             text=message,
             reply_markup=keyboard,
             parse_mode=ParseMode.HTML
         )
     except Exception as e:
-        logging.error(f"Fehler beim Posten der Wallet Detection Nachricht: {e}")
+        logging.error(f"❌ Fehler beim Posten der Wallet Detection Nachricht: {e}")
