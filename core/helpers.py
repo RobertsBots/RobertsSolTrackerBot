@@ -18,7 +18,7 @@ async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict)
         tag = "🚀 AutoDetected"
 
         # Prüfen, ob Wallet neu ist und speichern
-        was_added = await add_wallet(address, tag)
+        was_added = add_wallet(user_id=0, wallet=address, tag=tag)
         if not was_added:
             return  # bereits getrackt → keine doppelte Meldung
 
