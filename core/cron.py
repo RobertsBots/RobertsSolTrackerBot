@@ -3,9 +3,13 @@ import logging
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from core.run_smart_finder import run_smart_wallet_finder
 
+# Logger initialisieren
 logger = logging.getLogger(__name__)
+
+# Scheduler initialisieren
 scheduler = AsyncIOScheduler()
 
+# Setup-Funktion für Cronjobs
 def setup_cron_jobs(dp, bot):
     logger.info("🚀 Cronjob gestartet: SmartFinder wird alle 30 Minuten ausgeführt.")
     scheduler.add_job(
