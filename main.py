@@ -1,6 +1,6 @@
 import os
 import logging
-from fastapi import FastAPI
+from aiohttp import web
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums.parse_mode import ParseMode
 from aiogram.fsm.strategy import FSMStrategy
@@ -21,49 +21,47 @@ from core.commands import (
 )
 from core.cron import setup_cron_jobs
 
-# Logging aktivieren
+# Logging
 logging.basicConfig(level=logging.INFO)
 
-# Bot-Setup
+# Bot Setup
 TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-bot = Bot(
-    token=TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
+bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
-# FastAPI App
-app = FastAPI()
-
-# Webhook Endpoint
-@app.post("/")
-async def webhook_handler(update: dict):
-    await dp.feed_update(bot=bot, update=Update(**update))
-    return {"status": "ok"}
-
-# Routings einbinden
+# Include Routers
 dp.include_router(start_cmd)
 dp.include_router(add_wallet_cmd)
 dp.include_router(profit_cmd_router)
 
-# Message Commands
+# Register Message Commands
 dp.message.register(remove_wallet_cmd, F.text.startswith("/rm"))
 dp.message.register(list_wallets_cmd, F.text == "/list")
 dp.message.register(finder_menu_cmd, F.text == "/finder")
 
-# Callback Handler
+# Register Callback Queries
 dp.callback_query.register(handle_profit_callback, F.data.startswith("profit:"))
 dp.callback_query.register(handle_rm_callback, F.data.startswith("rm_"))
 dp.callback_query.register(handle_finder_selection, F.data.in_({"moonbags", "scalpbags", "finder_off"}))
 
-# Lifespan Events
-async def on_startup():
+# aiohttp Webserver Setup
+async def on_startup(app):
     await bot.set_webhook(WEBHOOK_URL)
     setup_cron_jobs(dp, bot)
 
-async def on_shutdown():
+async def on_shutdown(app):
     await bot.delete_webhook()
 
-# Webhook Setup mit FastAPI + aiogram
+async def handle_webhook(request):
+    data = await request.json()
+    update = Update(**data)
+    await dp.feed_update(bot, update)
+    return web.json_response({"status": "ok"})
+
+# App Setup
+app = web.Application()
+app.router.add_post("/", handle_webhook)
+
+# Webhook Setup
 setup_application(app, dp, bot=bot, on_startup=on_startup, on_shutdown=on_shutdown)
