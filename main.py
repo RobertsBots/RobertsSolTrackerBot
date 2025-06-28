@@ -2,7 +2,7 @@
 
 import os
 import logging
-from aiogram import Bot, Dispatcher, F
+from aiogram import Bot, Dispatcher
 from aiogram.enums.parse_mode import ParseMode
 from aiogram.fsm.strategy import FSMStrategy
 from aiogram.types import Update
@@ -12,17 +12,7 @@ from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 import uvicorn
 
-from core.commands import (
-    start_cmd,
-    add_wallet_cmd,
-    remove_wallet_cmd,
-    list_wallets_cmd,
-    profit_cmd_router,
-    handle_profit_callback,
-    handle_rm_callback,
-    finder_menu_cmd,
-    handle_finder_selection,
-)
+from core.commands import main_router  # ✅ Nur ein zentraler Router
 from core.cron import setup_cron_jobs
 
 # ------------------------------------------------
@@ -48,25 +38,8 @@ bot = Bot(
 )
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
-# ------------------------------------------------
-# Router Setup
-# ------------------------------------------------
-dp.include_router(start_cmd)
-dp.include_router(add_wallet_cmd)
-dp.include_router(profit_cmd_router)
-
-# Message handlers
-dp.message.register(remove_wallet_cmd, F.text.startswith("/rm"))
-dp.message.register(list_wallets_cmd, F.text == "/list")
-dp.message.register(finder_menu_cmd, F.text == "/finder")
-
-# Callback handlers
-dp.callback_query.register(handle_profit_callback, F.data.startswith("profit:"))
-dp.callback_query.register(handle_rm_callback, F.data.startswith("rm_"))
-dp.callback_query.register(
-    handle_finder_selection,
-    F.data.in_({"moonbags", "scalpbags", "finder_off"})
-)
+# ✅ Nur ein Router, der alles enthält
+dp.include_router(main_router)
 
 # ------------------------------------------------
 # FastAPI with Lifespan Events
