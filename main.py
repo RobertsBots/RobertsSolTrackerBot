@@ -22,8 +22,9 @@ from core.commands import (
 )
 from core.cron import setup_cron_jobs
 
-# Logging
+# Logging Setup
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Bot Setup
 TOKEN = os.getenv("BOT_TOKEN")
@@ -50,26 +51,30 @@ dp.callback_query.register(handle_finder_selection, F.data.in_({"moonbags", "sca
 async def on_startup(app):
     await bot.set_webhook(WEBHOOK_URL)
     setup_cron_jobs(dp, bot)
-    logging.info("✅ Webhook gesetzt & Cron gestartet.")
+    logger.info("✅ Webhook gesetzt & Cron gestartet.")
 
 async def on_shutdown(app):
     await bot.delete_webhook()
-    logging.info("🛑 Webhook entfernt.")
+    logger.info("🛑 Webhook entfernt.")
 
 # AIOHTTP App
 app = web.Application()
 app.on_startup.append(on_startup)
 app.on_shutdown.append(on_shutdown)
 
-# Webhook-Handler
+# Webhook-Handler mit Logging
 async def handle(request):
-    data = await request.json()
-    update = Update(**data)
-    await dp.feed_update(bot, update)
-    return web.Response(text="OK")
+    try:
+        data = await request.json()
+        update = Update(**data)
+        await dp.feed_update(bot, update)
+        return web.Response(text="OK")
+    except Exception as e:
+        logger.exception("❌ Fehler im Webhook-Handler:")
+        return web.Response(status=500)
 
-# 🚨 Wichtig: POST Route mit /<TOKEN>
+# POST-Route für Telegram Webhook
 app.router.add_post(f"/{TOKEN}", handle)
 
-# Setup Aiogram Webhook
+# Setup Aiogram Webhook App
 setup_application(app, dp, bot=bot)
