@@ -6,3 +6,4 @@ httpx
 supabase
 supafunc
 fastapi==0.110.0
+apscheduler==3.10.4
