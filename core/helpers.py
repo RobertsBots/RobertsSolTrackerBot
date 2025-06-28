@@ -1,29 +1,38 @@
 # core/helpers.py
 
 import logging
+import os
 from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.enums import ParseMode
+from core.database import add_wallet
 
 async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict):
     try:
-        winrate = wallet.get("winrate", "N/A")
-        roi = wallet.get("roi", "N/A")
-        pnl = wallet.get("pnl", "N/A")
-        age = wallet.get("account_age", "N/A")
-        sol = wallet.get("sol_balance", "N/A")
         address = wallet.get("address", "N/A")
+        winrate = float(wallet.get("winrate", 0))
+        roi = float(wallet.get("roi", 0))
+        pnl = float(wallet.get("pnl", 0))
+        age = int(wallet.get("account_age", 0))
+        sol = float(wallet.get("sol_balance", 0))
+        tag = "🚀 AutoDetected"
 
+        # Prüfen, ob Wallet neu ist und speichern
+        was_added = await add_wallet(address, tag)
+        if not was_added:
+            return  # bereits getrackt → keine doppelte Meldung
+
+        # Nachricht aufbauen
         message = f"""
 🚨 <b>Neue smarte Wallet erkannt!</b>
 
 <b>🏷️ Wallet:</b> <code>{address}</code>
-<b>📈 Winrate:</b> {winrate}%
-<b>💹 ROI:</b> {roi}%
-<b>💰 PnL:</b> {pnl} SOL
+<b>📈 Winrate:</b> {winrate:.1f}%
+<b>💹 ROI:</b> {roi:.2f}%
+<b>💰 PnL:</b> {pnl:.2f} SOL
 <b>📅 Account Age:</b> {age} Tage
-<b>🧾 Balance:</b> {sol} SOL
-<b>🏷️ Tag:</b> 🚀 AutoDetected
+<b>🧾 Balance:</b> {sol:.2f} SOL
+<b>🏷️ Tag:</b> {tag}
         """
 
         keyboard = InlineKeyboardMarkup(
