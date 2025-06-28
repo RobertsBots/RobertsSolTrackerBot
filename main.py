@@ -1,10 +1,8 @@
-# main.py
-
 import os
 import logging
 from fastapi import FastAPI
 from aiogram import Bot, Dispatcher, F
-from aiogram.enums import ParseMode
+from aiogram.enums.parse_mode import ParseMode
 from aiogram.fsm.strategy import FSMStrategy
 from aiogram.types import Update
 from aiogram.webhook.aiohttp_server import setup_application
@@ -26,13 +24,22 @@ from core.cron import setup_cron_jobs
 # Logging
 logging.basicConfig(level=logging.INFO)
 
-# Environment Variablen
+# Bot Setup
 TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-
-# Bot + Dispatcher Setup (mit neuen DefaultBotProperties)
-bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+bot = Bot(
+    token=TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
+
+# FastAPI App mit Lifespan-Kontext
+app = FastAPI()
+
+@app.post("/")
+async def webhook_handler(update: dict):
+    await dp.feed_update(bot=bot, update=Update(**update))
+    return {"status": "ok"}
 
 # Router Setup
 dp.include_router(start_cmd)
@@ -49,16 +56,7 @@ dp.callback_query.register(handle_profit_callback, F.data.startswith("profit:"))
 dp.callback_query.register(handle_rm_callback, F.data.startswith("rm_"))
 dp.callback_query.register(handle_finder_selection, F.data.in_({"moonbags", "scalpbags", "finder_off"}))
 
-# FastAPI App
-app = FastAPI()
-
-# Webhook Endpoint
-@app.post("/")
-async def webhook_handler(update: dict):
-    await dp.feed_update(bot=bot, update=Update(**update))
-    return {"status": "ok"}
-
-# aiogram Webhook Setup + Cronjobs in lifespan eingebaut
+# Lifespan Events (neu statt on_event)
 async def on_startup():
     await bot.set_webhook(WEBHOOK_URL)
     setup_cron_jobs(dp, bot)
@@ -66,4 +64,5 @@ async def on_startup():
 async def on_shutdown():
     await bot.delete_webhook()
 
+# Webhook Setup mit Lifespan
 setup_application(app, dp, bot=bot, on_startup=on_startup, on_shutdown=on_shutdown)
