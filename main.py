@@ -27,7 +27,11 @@ logger = logging.getLogger(__name__)
 # Bot Setup
 # ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = f"https://{os.getenv('WEBHOOK_URL', 'localhost')}/{TOKEN}"
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+
+if not WEBHOOK_URL:
+    logger.error("❌ WEBHOOK_URL ist nicht gesetzt. Bitte in Railway als vollständige HTTPS-URL eintragen.")
+    raise RuntimeError("WEBHOOK_URL is not set.")
 
 bot = Bot(
     token=TOKEN,
