@@ -1,18 +1,15 @@
 # core/commands/start_cmd.py
 
 import logging
-from aiogram import Router, types
+from aiogram import Router, types, F
 from aiogram.utils.markdown import hbold
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 router = Router()
 logger = logging.getLogger(__name__)
 
-@router.message()
+@router.message(F.text == "/start")
 async def start_cmd(message: types.Message):
-    if message.text != "/start":
-        return
-
     logger.info(f"📩 /start empfangen von: {message.from_user.id} – {message.from_user.username}")
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -34,9 +31,10 @@ async def start_cmd(message: types.Message):
         "Dieser Bot trackt automatisch Solana-Wallets und benachrichtigt dich über alle Käufe/Verkäufe.\n\n"
         "Verfügbare Befehle:\n"
         "/add <WALLET> <TAG> – Wallet hinzufügen\n"
-        "/rm <WALLET> – Wallet entfernen\n"
+        "/rm – Wallet entfernen\n"
         "/list – Alle Wallets anzeigen\n"
-        "/profit <WALLET> <+/-BETRAG> – Manuellen Profit setzen\n\n"
+        "/profit <WALLET> <+/-BETRAG> – Manuellen Profit setzen\n"
+        "/finder – SmartFinder Modus\n\n"
         "Oder benutze die Buttons 👇",
         reply_markup=keyboard
     )
