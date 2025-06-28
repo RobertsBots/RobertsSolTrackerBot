@@ -1,7 +1,4 @@
-# core/helpers.py
-
 import logging
-import os
 from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.enums import ParseMode
