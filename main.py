@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-@app.post(f"/{TOKEN}")
+@app.post(f"/webhook")
 async def telegram_webhook(req: Request):
     try:
         data = await req.json()
