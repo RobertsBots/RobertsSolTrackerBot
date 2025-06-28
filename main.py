@@ -1,3 +1,5 @@
+# main.py
+
 import os
 import logging
 from fastapi import FastAPI
@@ -57,7 +59,7 @@ dp.callback_query.register(handle_finder_selection, F.data.in_({"moonbags", "sca
 @app.on_event("startup")
 async def on_startup():
     await bot.set_webhook(WEBHOOK_URL)
-    setup_cron_jobs(dp, bot)
+    setup_cron_jobs(bot)
 
 @app.on_event("shutdown")
 async def on_shutdown():
