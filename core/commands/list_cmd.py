@@ -1,10 +1,14 @@
+# core/commands/list_cmd.py
+
 import logging
-from aiogram import types
+from aiogram import Router, types, F
 from core.database import get_wallets
 from core.utils import format_pnl, colorize_winrate
 
 logger = logging.getLogger(__name__)
+router = Router()
 
+@router.message(F.text == "/list")
 async def list_wallets_cmd(message: types.Message):
     wallets = get_wallets(message.from_user.id)
     if not wallets:
