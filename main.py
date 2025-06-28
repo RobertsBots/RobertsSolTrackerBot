@@ -1,5 +1,3 @@
-# main.py
-
 import os
 import logging
 from aiogram import Bot, Dispatcher
@@ -58,11 +56,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-@app.post(f"/webhook")
+@app.post("/webhook")
 async def telegram_webhook(req: Request):
     try:
         data = await req.json()
-        update = Update(**data)
+        logger.debug(f"📥 Eingehendes Telegram-Update:\n{data}")
+        try:
+            update = Update(**data)
+        except Exception as parse_err:
+            logger.exception("❌ Fehler beim Parsen des Telegram-Updates:")
+            return {"status": "error", "detail": f"Parsing error: {str(parse_err)}"}
+
         await dp.feed_update(bot, update)
         return {"status": "ok"}
     except Exception as e:
