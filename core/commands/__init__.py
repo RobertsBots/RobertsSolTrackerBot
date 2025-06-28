@@ -2,6 +2,7 @@
 
 from aiogram import Router
 
+# ✅ Einzelrouter importieren
 from .start_cmd import router as start_cmd
 from .add_cmd import router as add_wallet_cmd
 from .rm_cmd import router as rm_cmd_router
@@ -9,10 +10,10 @@ from .list_cmd import router as list_cmd_router
 from .profit_cmd import router as profit_cmd_router
 from .finder_cmd import router as finder_cmd_router
 
-# ✅ Zentraler Router, der alles kombiniert
+# ✅ Zentraler Router
 main_router = Router()
 
-# Subrouter einbinden
+# 🔗 Subrouter exakt einmal einbinden
 main_router.include_router(start_cmd)
 main_router.include_router(add_wallet_cmd)
 main_router.include_router(rm_cmd_router)
