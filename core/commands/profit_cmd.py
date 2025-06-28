@@ -1,3 +1,5 @@
+# core/commands/profit_cmd.py
+
 import logging
 from aiogram import Router, types, F
 from aiogram.filters import Command
