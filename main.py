@@ -9,6 +9,7 @@ from aiogram.types import Update
 from aiogram.client.default import DefaultBotProperties
 
 from fastapi import FastAPI, Request
+from contextlib import asynccontextmanager
 import uvicorn
 
 from core.commands import (
@@ -39,7 +40,7 @@ logger = logging.getLogger(__name__)
 # Bot Setup
 # ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = f"https://robertstracker-production.up.railway.app/{TOKEN}"
+WEBHOOK_URL = f"https://{os.getenv('RAILWAY_STATIC_URL', 'localhost')}/{TOKEN}"
 
 bot = Bot(
     token=TOKEN,
@@ -54,16 +55,12 @@ dp.include_router(start_cmd)
 dp.include_router(add_wallet_cmd)
 dp.include_router(profit_cmd_router)
 
-# ------------------------------------------------
-# Message Commands
-# ------------------------------------------------
+# Message handlers
 dp.message.register(remove_wallet_cmd, F.text.startswith("/rm"))
 dp.message.register(list_wallets_cmd, F.text == "/list")
 dp.message.register(finder_menu_cmd, F.text == "/finder")
 
-# ------------------------------------------------
-# Callback Queries
-# ------------------------------------------------
+# Callback handlers
 dp.callback_query.register(handle_profit_callback, F.data.startswith("profit:"))
 dp.callback_query.register(handle_rm_callback, F.data.startswith("rm_"))
 dp.callback_query.register(
@@ -72,20 +69,18 @@ dp.callback_query.register(
 )
 
 # ------------------------------------------------
-# FastAPI Webhook Setup
+# FastAPI with Lifespan Events
 # ------------------------------------------------
-app = FastAPI()
-
-@app.on_event("startup")
-async def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await bot.set_webhook(WEBHOOK_URL)
     setup_cron_jobs(dp, bot)
     logger.info("✅ Webhook gesetzt & Cron gestartet.")
-
-@app.on_event("shutdown")
-async def on_shutdown():
+    yield
     await bot.delete_webhook()
     logger.info("🔒 Webhook entfernt.")
+
+app = FastAPI(lifespan=lifespan)
 
 @app.post(f"/{TOKEN}")
 async def telegram_webhook(req: Request):
@@ -99,7 +94,7 @@ async def telegram_webhook(req: Request):
         return {"status": "error", "detail": str(e)}
 
 # ------------------------------------------------
-# App Runner
+# Uvicorn Starter
 # ------------------------------------------------
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000)
