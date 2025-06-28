@@ -1,15 +1,19 @@
+# core/commands/finder_cmd.py
+
 import logging
-from aiogram import types
+from aiogram import Router, types, F
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from aiogram.filters.callback_data import CallbackData
 from core.database import set_finder_mode
 from core.alerts import notify_user
 
 logger = logging.getLogger(__name__)
+router = Router()
 
 class FinderCallback(CallbackData, prefix="finder"):
     action: str
 
+@router.message(F.text == "/finder")
 async def finder_menu_cmd(message: types.Message):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -26,6 +30,7 @@ async def finder_menu_cmd(message: types.Message):
         parse_mode="Markdown"
     )
 
+@router.callback_query(FinderCallback.filter())
 async def handle_finder_selection(callback: CallbackQuery, callback_data: FinderCallback):
     mode = callback_data.action
     user_id = callback.from_user.id
