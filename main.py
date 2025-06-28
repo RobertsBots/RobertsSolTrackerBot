@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 # Bot Setup
 # ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Nutze hier direkt die ENV
+WEBHOOK_URL = f"https://robertstracker-production.up.railway.app/{TOKEN}"
 
 bot = Bot(
     token=TOKEN,
@@ -47,7 +47,7 @@ bot = Bot(
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
 # ------------------------------------------------
-# Router Setup – ACHTUNG: keine `.router`!
+# Router Setup – keine `.router` verwenden!
 # ------------------------------------------------
 dp.include_router(start_cmd)
 dp.include_router(add_wallet_cmd)
