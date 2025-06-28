@@ -9,11 +9,13 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.types import Update
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
-import uvicorn
 
-from core.commands import main_router  # Wichtig: Nur hier einbinden
+from core.commands import main_router  # WICHTIG: Nur hier einbinden
 from core.cron import setup_cron_jobs
 
+# ------------------------------------------------
+# Logging Setup
+# ------------------------------------------------
 DEBUG = os.getenv("DEBUG", "False") == "True"
 logging.basicConfig(
     level=logging.DEBUG if DEBUG else logging.INFO,
@@ -21,6 +23,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ------------------------------------------------
+# Bot Setup
+# ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = f"https://{os.getenv('WEBHOOK_URL', 'localhost')}/{TOKEN}"
 
@@ -30,9 +35,14 @@ bot = Bot(
 )
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
-# ✅ Nur einmal und genau hier einbinden
+# ------------------------------------------------
+# Router Setup (NUR HIER!)
+# ------------------------------------------------
 dp.include_router(main_router)
 
+# ------------------------------------------------
+# FastAPI + Webhook + Lifespan
+# ------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await bot.set_webhook(WEBHOOK_URL)
@@ -54,6 +64,3 @@ async def telegram_webhook(req: Request):
     except Exception as e:
         logger.exception("❌ Fehler im Webhook:")
         return {"status": "error", "detail": str(e)}
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000)
