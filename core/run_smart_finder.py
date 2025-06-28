@@ -1,6 +1,7 @@
+# core/run_smart_finder.py
+
 import os
 import httpx
-from aiogram import Bot
 from core.database import add_wallet
 from core.helpers import post_wallet_detection_message
 
@@ -13,9 +14,9 @@ headers = {
     "x-dune-api-key": DUNE_API_KEY
 }
 
-async def run_smart_wallet_finder(bot: Bot):
+async def run_smart_wallet_finder(bot):
     url = f"https://api.dune.com/api/v1/query/{DUNE_QUERY_ID}/results"
-
+    
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             response = await client.get(url, headers=headers)
@@ -28,21 +29,20 @@ async def run_smart_wallet_finder(bot: Bot):
             roi = row.get("roi", 0)
 
             if winrate >= 70 and roi >= 5:
-                address = row.get("wallet")
+                address = row["wallet"]
                 tag = "🚀 AutoDetected"
-                added = add_wallet(user_id=0, wallet=address, tag=tag)
 
+                added = await add_wallet(address, tag)
                 if added:
                     wallet_data = {
-                        "address": address,
                         "winrate": winrate,
                         "roi": roi,
                         "pnl": row.get("realized_pnl", 0),
                         "account_age": row.get("wallet_age_days", "?"),
-                        "sol_balance": row.get("sol_balance", 0)
+                        "sol_balance": row.get("sol_balance", 0),
+                        "address": address
                     }
-
                     await post_wallet_detection_message(bot, TELEGRAM_CHANNEL_ID, wallet_data)
 
     except Exception as e:
-        print(f"❌ Fehler bei SmartFinder: {e}")
+        print(f"Fehler bei SmartFinder: {e}")
