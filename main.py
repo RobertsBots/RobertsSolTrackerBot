@@ -12,7 +12,7 @@ from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 import uvicorn
 
-from core.commands import main_router  # ✅ Nur ein zentraler Router
+from core.commands import main_router
 from core.cron import setup_cron_jobs
 
 # ------------------------------------------------
@@ -38,7 +38,7 @@ bot = Bot(
 )
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
-# ✅ Nur ein Router, der alles enthält
+# ✅ Haupt-Router laden
 dp.include_router(main_router)
 
 # ------------------------------------------------
