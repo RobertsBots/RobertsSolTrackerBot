@@ -1,10 +1,14 @@
+# core/commands/rm_cmd.py
+
 import logging
-from aiogram import types
+from aiogram import Router, types, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.database import get_wallets, remove_wallet
 
 logger = logging.getLogger(__name__)
+router = Router()
 
+@router.message(F.text.startswith("/rm"))
 async def remove_wallet_cmd(message: types.Message):
     wallets = get_wallets(message.from_user.id)
     if not wallets:
@@ -20,6 +24,7 @@ async def remove_wallet_cmd(message: types.Message):
     keyboard = builder.adjust(1).as_markup()
     await message.answer("🗑 Wähle eine Wallet zum Entfernen:", reply_markup=keyboard)
 
+@router.callback_query(F.data.startswith("rm_"))
 async def handle_rm_callback(callback_query: types.CallbackQuery):
     wallet = callback_query.data.replace("rm_", "")
     remove_wallet(callback_query.from_user.id, wallet)
