@@ -1,5 +1,5 @@
 import logging
-from aiogram import Router, types
+from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from core.database import update_pnl
@@ -13,7 +13,7 @@ async def profit_cmd(message: types.Message):
     if len(args) != 3:
         await message.answer(
             "❗️Falsche Nutzung von /profit\n\nBitte nutze:\n`/profit <WALLET> <+/-BETRAG>`",
-            parse_mode="Markdown",
+            parse_mode="Markdown"
         )
         return
 
@@ -25,12 +25,19 @@ async def profit_cmd(message: types.Message):
         await message.answer("❗️Ungültiger Betrag. Beispiel: `/profit ABC...XYZ +1.5`", parse_mode="Markdown")
         return
 
-    update_pnl(wallet, amount)
-    color = "🟢" if amount > 0 else "🔴"
-    await message.answer(f"{color} Profit für `{wallet}` aktualisiert: `{amount:+.2f} SOL`", parse_mode="Markdown")
-    logger.info(f"Profit gesetzt: {wallet} → {amount} – User {message.from_user.id}")
+    try:
+        update_pnl(wallet, amount)
+        color = "🟢" if amount > 0 else "🔴"
+        await message.answer(
+            f"{color} Profit für `{wallet}` aktualisiert: `{amount:+.2f} SOL`",
+            parse_mode="Markdown"
+        )
+        logger.info(f"Profit gesetzt: {wallet} → {amount} – User {message.from_user.id}")
+    except Exception as e:
+        logger.error(f"Fehler beim Update von Profit: {e}")
+        await message.answer("⚠️ Ein Fehler ist aufgetreten beim Setzen des Profits.")
 
-@router.callback_query(lambda c: c.data.startswith("profit:"))
+@router.callback_query(F.data.startswith("profit:"))
 async def handle_profit_callback(callback_query: types.CallbackQuery):
     await callback_query.message.edit_text(
         "❗️Bitte sende den Profit-Wert manuell als Befehl im Format:\n`/profit <WALLET> <+/-BETRAG>`",
