@@ -2,13 +2,14 @@
 
 import os
 import logging
-from aiohttp import web
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums.parse_mode import ParseMode
 from aiogram.fsm.strategy import FSMStrategy
 from aiogram.types import Update
-from aiogram.webhook.aiohttp_server import setup_application
 from aiogram.client.default import DefaultBotProperties
+
+from fastapi import FastAPI, Request
+import uvicorn
 
 from core.commands import (
     start_cmd,
@@ -71,34 +72,34 @@ dp.callback_query.register(
 )
 
 # ------------------------------------------------
-# Webhook Lifecycle Events
+# FastAPI Webhook Setup
 # ------------------------------------------------
-async def on_startup(app):
+app = FastAPI()
+
+@app.on_event("startup")
+async def on_startup():
     await bot.set_webhook(WEBHOOK_URL)
     setup_cron_jobs(dp, bot)
     logger.info("✅ Webhook gesetzt & Cron gestartet.")
 
-async def on_shutdown(app):
+@app.on_event("shutdown")
+async def on_shutdown():
     await bot.delete_webhook()
     logger.info("🔒 Webhook entfernt.")
 
-# ------------------------------------------------
-# AIOHTTP Webserver Setup
-# ------------------------------------------------
-app = web.Application()
-app.on_startup.append(on_startup)
-app.on_shutdown.append(on_shutdown)
-
-async def handle(request):
+@app.post(f"/{TOKEN}")
+async def telegram_webhook(req: Request):
     try:
-        data = await request.json()
+        data = await req.json()
         update = Update(**data)
         await dp.feed_update(bot, update)
-        return web.Response(text="OK")
+        return {"status": "ok"}
     except Exception as e:
-        logger.exception("❌ Fehler im Webhook-Handler:")
-        return web.Response(status=500, text="Webhook Error")
+        logger.exception("❌ Fehler im Webhook:")
+        return {"status": "error", "detail": str(e)}
 
-app.router.add_post(f"/{TOKEN}", handle)
-
-setup_application(app, dp, bot=bot)
+# ------------------------------------------------
+# App Runner
+# ------------------------------------------------
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000)
