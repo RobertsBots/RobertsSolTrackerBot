@@ -3,7 +3,7 @@
 import os
 import logging
 from aiohttp import web
-from aiogram import Bot, Dispatcher, F, Router
+from aiogram import Bot, Dispatcher, F
 from aiogram.enums.parse_mode import ParseMode
 from aiogram.fsm.strategy import FSMStrategy
 from aiogram.types import Update
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 # Bot Setup
 # ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = f"https://robertstracker-production.up.railway.app/{TOKEN}"
+WEBHOOK_URL = f"https://robertssoltrackerbot-production.up.railway.app/{TOKEN}"
 
 bot = Bot(
     token=TOKEN,
@@ -47,7 +47,7 @@ bot = Bot(
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
 # ------------------------------------------------
-# Router Setup – keine `.router` verwenden!
+# Router Setup
 # ------------------------------------------------
 dp.include_router(start_cmd)
 dp.include_router(add_wallet_cmd)
