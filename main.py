@@ -1,3 +1,4 @@
+# main.py
 import os
 import logging
 from aiohttp import web
@@ -30,38 +31,45 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
-# Include Routers
+# Router Setup
 dp.include_router(start_cmd)
 dp.include_router(add_wallet_cmd)
 dp.include_router(profit_cmd_router)
 
-# Register Message Commands
+# Message Commands
 dp.message.register(remove_wallet_cmd, F.text.startswith("/rm"))
 dp.message.register(list_wallets_cmd, F.text == "/list")
 dp.message.register(finder_menu_cmd, F.text == "/finder")
 
-# Register Callback Queries
+# Callback Queries
 dp.callback_query.register(handle_profit_callback, F.data.startswith("profit:"))
 dp.callback_query.register(handle_rm_callback, F.data.startswith("rm_"))
 dp.callback_query.register(handle_finder_selection, F.data.in_({"moonbags", "scalpbags", "finder_off"}))
 
-# aiohttp Webserver Setup
+# Webhook-Events
 async def on_startup(app):
     await bot.set_webhook(WEBHOOK_URL)
     setup_cron_jobs(dp, bot)
+    logging.info("✅ Webhook gesetzt & Cron gestartet.")
 
 async def on_shutdown(app):
     await bot.delete_webhook()
+    logging.info("🛑 Webhook entfernt.")
 
-async def handle_webhook(request):
+# AIOHTTP App (NICHT FastAPI!)
+app = web.Application()
+app.on_startup.append(on_startup)
+app.on_shutdown.append(on_shutdown)
+
+# Webhook-Handler
+async def handle(request):
     data = await request.json()
     update = Update(**data)
     await dp.feed_update(bot, update)
-    return web.json_response({"status": "ok"})
+    return web.Response(text="OK")
 
-# App Setup
-app = web.Application()
-app.router.add_post("/", handle_webhook)
+# Route einrichten
+app.router.add_post("/", handle)
 
-# Webhook Setup
-setup_application(app, dp, bot=bot, on_startup=on_startup, on_shutdown=on_shutdown)
+# Setup Aiogram Webhook
+setup_application(app, dp, bot=bot)
