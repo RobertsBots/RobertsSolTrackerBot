@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 # Bot Setup
 # ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = f"https://{os.getenv('RAILWAY_STATIC_URL', 'localhost')}/{TOKEN}"
+WEBHOOK_URL = f"https://{os.getenv('WEBHOOK_URL', 'localhost')}/{TOKEN}"
 
 bot = Bot(
     token=TOKEN,
