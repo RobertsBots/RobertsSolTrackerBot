@@ -1,13 +1,15 @@
+# core/commands/start_cmd.py
+import logging
 from aiogram import Router, types
 from aiogram.utils.markdown import hbold
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 router = Router()
+logger = logging.getLogger(__name__)
 
-@router.message()
+@router.message(commands=["start"])
 async def start_cmd(message: types.Message):
-    if message.text != "/start":
-        return
+    logger.info(f"📩 /start empfangen von {message.from_user.id} – {message.from_user.full_name}")
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
