@@ -1,3 +1,5 @@
+# core/utils.py
+
 from datetime import datetime
 import httpx
 
@@ -7,8 +9,11 @@ def shorten_address(address: str) -> str:
 def format_sol(value: float) -> str:
     return f"{value:.2f} ◎"
 
-def format_pnl(value: float) -> str:
+def format_pnl(value: float, html: bool = True) -> str:
     emoji = "🟢" if value >= 0 else "🔴"
+    if html:
+        color = "green" if value >= 0 else "red"
+        return f"<b><span style='color:{color};'>{emoji} {value:+.2f}◎</span></b>"
     return f"{emoji} {value:+.2f}◎"
 
 def generate_dexscreener_link(token_address: str) -> str:
@@ -35,15 +40,18 @@ def parse_wallet_trade(data: dict) -> str:
     except Exception:
         return "ParseError"
 
-def colorize_winrate(wins: int, losses: int) -> str:
+def colorize_winrate(wins: int, losses: int, html: bool = True) -> str:
     total = wins + losses
     if total == 0:
         return "WR(0/0)"
     winrate = int((wins / total) * 100)
-    emoji = "🟢" if winrate >= 60 else "🔴"
+    emoji = "🟢" if winrate >= 60 else "🟠" if winrate >= 40 else "🔴"
+
+    if html:
+        color = "green" if winrate >= 60 else "orange" if winrate >= 40 else "red"
+        return f"<b><span style='color:{color};'>{emoji} WR({wins}/{total})</span></b>"
     return f"{emoji} WR({wins}/{total})"
 
-# Optional: Falls du woanders noch die reine Zahl brauchst
 def calculate_winrate(wins: int, losses: int) -> float:
     total = wins + losses
     return round((wins / total) * 100, 2) if total > 0 else 0.0
