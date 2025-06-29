@@ -1,20 +1,10 @@
-# Use official Python image
-FROM python:3.10.13-slim
+# Dockerfile
+FROM python:3.10-slim
 
-# Set workdir
 WORKDIR /app
+COPY . /app
 
-# Copy requirements
-COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
 
-# Install dependencies
-RUN pip install --upgrade pip && pip install -r requirements.txt
-
-# Copy all files
-COPY . .
-
-# Expose port for FastAPI
-EXPOSE 8000
-
-# Start command for Render (FastAPI app)
-CMD ["python", "main.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
