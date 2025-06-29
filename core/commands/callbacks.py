@@ -55,6 +55,8 @@ async def handle_finder_selection(callback_query: types.CallbackQuery):
     selection = callback_query.data.replace("finder_", "")
     user_id = callback_query.from_user.id
 
+    await callback_query.answer()
+
     if selection == "moonbags":
         await set_finder_mode(user_id, "moonbags")
         await callback_query.message.edit_text("✅ Finder aktiviert: 🌕 Moonbags", reply_markup=get_main_menu())
@@ -73,6 +75,6 @@ def register_callback_buttons(dp: Dispatcher):
     dp.register_callback_query_handler(handle_remove_wallet, lambda c: c.data == "remove_wallet")
     dp.register_callback_query_handler(handle_list_wallets, lambda c: c.data == "list_wallets")
     dp.register_callback_query_handler(handle_add_profit, lambda c: c.data == "add_profit")
-    dp.register_callback_query_handler(handle_open_smart_finder, lambda c: c.data == "smartfinder_menu" or c.data == "smart_finder")
+    dp.register_callback_query_handler(handle_open_smart_finder, lambda c: c.data in ["smartfinder_menu", "smart_finder"])
     dp.register_callback_query_handler(handle_back_to_main_menu, lambda c: c.data == "main_menu")
     dp.register_callback_query_handler(handle_finder_selection, lambda c: c.data.startswith("finder_"))
