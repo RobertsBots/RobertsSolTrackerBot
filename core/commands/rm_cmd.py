@@ -1,13 +1,12 @@
-# core/commands/rm_cmd.py
-
 import logging
-from aiogram import types, Dispatcher
+from aiogram import types, Dispatcher, Bot
 from core.database import get_wallets, remove_wallet
 
 logger = logging.getLogger(__name__)
 
 # /rm Befehl – zeigt Wallets zur Auswahl an
 async def remove_wallet_cmd(message: types.Message):
+    Bot.set_current(message.bot)
     wallets = get_wallets(message.from_user.id)
     if not wallets:
         await message.answer("❌ Keine Wallets gefunden.")
@@ -23,6 +22,7 @@ async def remove_wallet_cmd(message: types.Message):
 
 # Callback für Entfernen einer Wallet
 async def handle_rm_callback(callback_query: types.CallbackQuery):
+    Bot.set_current(callback_query.bot)
     wallet = callback_query.data.replace("rm_", "")
     remove_wallet(callback_query.from_user.id, wallet)
     await callback_query.message.edit_text(
