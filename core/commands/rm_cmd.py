@@ -8,13 +8,11 @@ from core.database import get_wallets, remove_wallet
 
 logger = logging.getLogger(__name__)
 
-# Router ist optional in aiogram 2.x – du verwendest Dispatcher direkt
-# Also nutzen wir weiterhin klassische Registrierung
-
 # /rm Befehl – zeigt Wallets zur Auswahl an
 async def remove_wallet_cmd(message: types.Message):
     Bot.set_current(message.bot)
-    wallets = get_wallets(message.from_user.id)
+    wallets = await get_wallets(message.from_user.id)
+    
     if not wallets:
         await message.answer("❌ Keine Wallets gefunden.")
         return
@@ -31,7 +29,8 @@ async def remove_wallet_cmd(message: types.Message):
 async def handle_rm_callback(callback_query: types.CallbackQuery):
     Bot.set_current(callback_query.bot)
     wallet = callback_query.data.replace("rm_", "")
-    remove_wallet(callback_query.from_user.id, wallet)
+    
+    await remove_wallet(callback_query.from_user.id, wallet)
     await callback_query.message.edit_text(
         f"✅ Wallet `{wallet}` entfernt.",
         parse_mode="Markdown"
