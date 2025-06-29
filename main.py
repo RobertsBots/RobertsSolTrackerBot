@@ -59,8 +59,9 @@ app = FastAPI(lifespan=lifespan)
 @app.post("/webhook")
 async def telegram_webhook(req: Request):
     try:
+        raw = await req.body()
+        logger.debug(f"📦 RAW Webhook body:\n{raw.decode()}")
         data = await req.json()
-        logger.debug(f"📥 Eingehendes Telegram-Update:\n{data}")
         try:
             update = Update(**data)
         except Exception as parse_err:
