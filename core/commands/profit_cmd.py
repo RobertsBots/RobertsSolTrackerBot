@@ -49,6 +49,6 @@ async def handle_profit_callback(callback_query: types.CallbackQuery):
     )
 
 # Registrierung
-def register_handlers(dp: Dispatcher):
+def register_profit_cmd(dp: Dispatcher):
     dp.register_message_handler(profit_cmd, commands=["profit"])
     dp.register_callback_query_handler(handle_profit_callback, lambda c: c.data.startswith("profit:"))
