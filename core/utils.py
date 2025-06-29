@@ -1,6 +1,6 @@
+import os
 from datetime import datetime
 import httpx
-import os
 import logging
 from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -63,7 +63,7 @@ def get_webhook_url() -> str:
     if not base_url:
         raise ValueError("❌ WEBHOOK_URL, RENDER_EXTERNAL_URL oder RAILWAY_STATIC_URL ist nicht gesetzt.")
     
-    return base_url.rstrip("/")
+    return base_url.rstrip("/") + "/webhook"  # ✅ Webhook-Pfad anhängen
 
 async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict):
     try:
