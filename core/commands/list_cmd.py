@@ -1,5 +1,6 @@
 import logging
-from aiogram import types, Dispatcher, Bot
+from aiogram import types, Bot
+from aiogram.dispatcher import Dispatcher
 from core.database import get_wallets
 from core.utils import format_pnl, colorize_winrate
 
