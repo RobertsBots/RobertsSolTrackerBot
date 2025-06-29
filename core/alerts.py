@@ -16,8 +16,8 @@ async def send_alert(bot: Bot, chat_id: int, text: str):
         logger.error(f"❌ Unexpected error while sending to {chat_id}: {e}")
 
 async def notify_user(user_id: int, text: str):
-    from main import bot  # Lazy import (ok bei aiogram 2.x & FastAPI)
     try:
+        from main import bot  # lazy import, ok bei aiogram 2.x & FastAPI
         await bot.send_message(chat_id=user_id, text=text, parse_mode="HTML")
         logger.info(f"📬 Notified user {user_id}: {text}")
     except TelegramAPIError as e:
