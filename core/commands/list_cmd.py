@@ -1,7 +1,5 @@
-# core/commands/list_cmd.py
-
 import logging
-from aiogram import types, Dispatcher
+from aiogram import types, Dispatcher, Bot
 from core.database import get_wallets
 from core.utils import format_pnl, colorize_winrate
 
@@ -9,6 +7,7 @@ logger = logging.getLogger(__name__)
 
 # /list Befehl – zeigt alle Wallets
 async def list_wallets_cmd(message: types.Message):
+    Bot.set_current(message.bot)
     wallets = get_wallets(message.from_user.id)
 
     if not wallets:
