@@ -34,7 +34,8 @@ async def start_cmd(message: types.Message):
         "/profit <WALLET> <+/-BETRAG> – Manuellen Profit setzen\n"
         "/finder – SmartFinder Modus\n\n"
         "Oder benutze die Buttons 👇",
-        reply_markup=keyboard
+        reply_markup=keyboard,
+        parse_mode="HTML"  # ✅ wichtig für hbold()
     )
 
 # Registrierung für Dispatcher
