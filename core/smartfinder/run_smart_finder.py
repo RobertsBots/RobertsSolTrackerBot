@@ -41,7 +41,7 @@ async def run_smart_wallet_finder(bot: Bot):
                     "sol_balance": row.get("sol_balance", 0)
                 }
 
-                added = add_wallet(user_id=0, wallet=wallet_data["address"], tag="🚀 AutoDetected")
+                added = await add_wallet(user_id=0, wallet=wallet_data["address"], tag="🚀 AutoDetected")
 
                 if added:
                     await post_wallet_detection_message(
