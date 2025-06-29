@@ -53,6 +53,6 @@ async def handle_finder_callback(callback_query: types.CallbackQuery):
     await notify_user(callback_query.from_user.id, f"✅ SmartFinder-Modus: `{mode}`")
 
 # ✅ Dispatcher-Registrierung
-def register_handlers(dp: Dispatcher):
+def register_finder_cmd(dp: Dispatcher):
     dp.register_message_handler(finder_cmd, commands=["finder"])
     dp.register_callback_query_handler(handle_finder_callback, lambda c: c.data.startswith("finder:"))
