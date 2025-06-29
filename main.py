@@ -1,5 +1,3 @@
-# main.py
-
 import os
 import logging
 from fastapi import FastAPI, Request
@@ -26,21 +24,21 @@ logger = logging.getLogger(__name__)
 # Telegram Bot Setup
 # ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
-bot = Bot(token=TOKEN, parse_mode=types.ParseMode.HTML)
+bot = Bot(token=TOKEN, parse_mode="HTML")
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
 # ------------------------------------------------
 # Router Setup
 # ------------------------------------------------
-main_router(dp)  # Alle Handler registrieren (Funktion aus __init__.py)
+main_router(dp)  # Alle Handler registrieren
 
 # ------------------------------------------------
 # FastAPI Setup
 # ------------------------------------------------
 app = FastAPI()
 
-# CORS Middleware (optional für Render)
+# CORS Middleware (z. B. für Render)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -56,7 +54,7 @@ async def telegram_webhook(request: Request):
         await dp.process_update(update)
         return {"status": "ok"}
     except Exception as e:
-        logger.exception("❌ Fehler beim Verarbeiten des Updates:")
+        logger.exception("❌ Fehler beim Verarbeiten des Telegram-Updates:")
         return JSONResponse(status_code=500, content={"status": "error", "detail": str(e)})
 
 @app.get("/")
@@ -65,14 +63,14 @@ async def healthcheck():
     return {"status": "healthy"}
 
 # ------------------------------------------------
-# Startup & Shutdown Hooks
+# Startup & Shutdown
 # ------------------------------------------------
 WEBHOOK_URL = get_webhook_url()
 
 @app.on_event("startup")
 async def startup():
     await bot.set_webhook(WEBHOOK_URL)
-    setup_cron_jobs(dp, bot)
+    setup_cron_jobs(bot)
     logger.info("✅ Webhook gesetzt & Cronjobs gestartet.")
 
 @app.on_event("shutdown")
