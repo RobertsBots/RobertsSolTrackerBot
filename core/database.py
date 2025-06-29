@@ -1,6 +1,7 @@
 import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -68,14 +69,18 @@ def update_tag(wallet: str, new_tag: str):
 
 # ✅ Finder-Modus
 def set_finder_mode(user_id: int, mode: str):
-    result = supabase.table("users").select("*").eq("user_id", user_id).execute()
-    if result.data:
-        supabase.table("users").update({"finder_mode": mode}).eq("user_id", user_id).execute()
+    existing = supabase.table("finder_modes").select("*").eq("user_id", user_id).execute()
+    if existing.data:
+        supabase.table("finder_modes").update({"mode": mode}).eq("user_id", user_id).execute()
     else:
-        supabase.table("users").insert({"user_id": user_id, "finder_mode": mode}).execute()
+        supabase.table("finder_modes").insert({
+            "user_id": user_id,
+            "mode": mode,
+            "created_at": datetime.utcnow().isoformat()
+        }).execute()
 
 def get_finder_mode(user_id: int) -> str:
-    result = supabase.table("users").select("finder_mode").eq("user_id", user_id).execute()
-    if result.data and result.data[0].get("finder_mode"):
-        return result.data[0]["finder_mode"]
+    result = supabase.table("finder_modes").select("mode").eq("user_id", user_id).execute()
+    if result.data and result.data[0].get("mode"):
+        return result.data[0]["mode"]
     return "off"
