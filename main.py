@@ -6,7 +6,6 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from aiogram import Bot, Dispatcher, types
-from aiogram.dispatcher.dispatcher import Dispatcher as LegacyDispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.executor import start_webhook
 
@@ -30,19 +29,19 @@ logger = logging.getLogger(__name__)
 TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN, parse_mode=types.ParseMode.HTML)
 storage = MemoryStorage()
-dp = LegacyDispatcher(bot, storage=storage)
+dp = Dispatcher(bot, storage=storage)
 
 # ------------------------------------------------
-# Router Setup (Aiogram 2.x: Handler-Registrierung)
+# Router Setup
 # ------------------------------------------------
-main_router(dp)  # 🔁 In 2.x müssen wir eine Funktion aufrufen, die alle Handlers registriert
+main_router(dp)  # Alle Handler registrieren (Funktion aus __init__.py)
 
 # ------------------------------------------------
-# FastAPI Setup (Webhook + Healthcheck)
+# FastAPI Setup
 # ------------------------------------------------
 app = FastAPI()
 
-# Optional für Render/Web Deploys
+# CORS Middleware (optional für Render)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -67,22 +66,24 @@ async def healthcheck():
     return {"status": "healthy"}
 
 # ------------------------------------------------
-# Startfunktion für Render oder lokal
+# Webhook-Startup-Funktionen
 # ------------------------------------------------
 WEBHOOK_URL = get_webhook_url()
 WEBAPP_HOST = "0.0.0.0"
 WEBAPP_PORT = int(os.getenv("PORT", 8000))
 
-async def on_startup(dp: LegacyDispatcher):
+async def on_startup(dp: Dispatcher):
     await bot.set_webhook(WEBHOOK_URL)
     setup_cron_jobs(dp, bot)
     logger.info("✅ Webhook gesetzt & Cronjobs gestartet.")
 
-async def on_shutdown(dp: LegacyDispatcher):
+async def on_shutdown(dp: Dispatcher):
     await bot.delete_webhook()
     logger.info("🔒 Webhook entfernt.")
 
-# Starte Webhook (von Render automatisch getriggert)
+# ------------------------------------------------
+# Render Start
+# ------------------------------------------------
 if __name__ == "__main__":
     start_webhook(
         dispatcher=dp,
