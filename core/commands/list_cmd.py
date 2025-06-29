@@ -36,5 +36,5 @@ async def list_wallets_cmd(message: types.Message):
     logger.info(f"📄 Wallet-Übersicht gesendet – User {message.from_user.id}")
 
 # Registrierung
-def register_handlers(dp: Dispatcher):
+def register_list_cmd(dp: Dispatcher):
     dp.register_message_handler(list_wallets_cmd, commands=["list"])
