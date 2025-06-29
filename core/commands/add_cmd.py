@@ -6,30 +6,48 @@ logger = logging.getLogger(__name__)
 
 # Handler-Funktion für /add
 async def add_wallet_cmd(message: types.Message):
-    Bot.set_current(message.bot)  # 🔧 Wichtig für aiogram 2.25.2
-    args = message.text.split()
+    try:
+        Bot.set_current(message.bot)  # 🔧 Wichtig für aiogram 2.25.2
+        args = message.text.split()
 
-    if len(args) != 3:
-        await message.answer(
-            "❗️Falsche Nutzung von /add\n\nNutze:\n`/add <WALLET> <TAG>`",
-            parse_mode="Markdown",
-        )
-        return
+        if len(args) != 3:
+            await message.answer(
+                "❗️Falsche Nutzung von /add\n\nNutze:\n`/add <WALLET> <TAG>`",
+                parse_mode="Markdown",
+            )
+            return
 
-    wallet, tag = args[1], args[2]
-    success = await add_wallet(user_id=message.from_user.id, wallet=wallet, tag=tag)
+        wallet, tag = args[1].strip(), args[2].strip()
 
-    if success:
-        await message.answer(
-            f"✅ Wallet `{wallet}` mit Tag `{tag}` hinzugefügt.",
-            parse_mode="Markdown"
-        )
-        logger.info(f"Wallet hinzugefügt: {wallet} (Tag: {tag}) – User {message.from_user.id}")
-    else:
-        await message.answer(
-            f"⚠️ Wallet `{wallet}` ist bereits vorhanden.",
-            parse_mode="Markdown"
-        )
+        if not wallet or not tag:
+            await message.answer(
+                "⚠️ Bitte gib sowohl eine Wallet-Adresse als auch einen Tag an.",
+                parse_mode="Markdown",
+            )
+            return
+
+        user_id = message.from_user.id if message.from_user else None
+        if not user_id:
+            await message.answer("❌ Benutzer-ID konnte nicht ermittelt werden.")
+            return
+
+        success = await add_wallet(user_id=user_id, wallet=wallet, tag=tag)
+
+        if success:
+            await message.answer(
+                f"✅ Wallet `{wallet}` mit Tag `{tag}` hinzugefügt.",
+                parse_mode="Markdown"
+            )
+            logger.info(f"Wallet hinzugefügt: {wallet} (Tag: {tag}) – User {user_id}")
+        else:
+            await message.answer(
+                f"⚠️ Wallet `{wallet}` ist bereits vorhanden.",
+                parse_mode="Markdown"
+            )
+
+    except Exception as e:
+        logger.exception("❌ Fehler bei /add:")
+        await message.answer("❌ Ein unerwarteter Fehler ist aufgetreten.")
 
 # Registrierung für Dispatcher
 def register_add_cmd(dp: Dispatcher):
