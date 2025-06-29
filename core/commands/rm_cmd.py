@@ -38,6 +38,6 @@ async def handle_rm_callback(callback_query: types.CallbackQuery):
     logger.info(f"Wallet entfernt: {wallet} – User {callback_query.from_user.id}")
 
 # Registrierung
-def register_add_cmd(dp: Dispatcher):
+def register_rm_cmd(dp: Dispatcher):
     dp.register_message_handler(remove_wallet_cmd, commands=["rm"])
     dp.register_callback_query_handler(handle_rm_callback, lambda c: c.data.startswith("rm_"))
