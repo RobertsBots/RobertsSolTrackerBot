@@ -72,7 +72,7 @@ app.add_middleware(
 async def telegram_webhook(request: Request):
     try:
         body = await request.body()
-        update = Update.model_validate_json(body)
+        update = Update.model_validate_json(body.decode("utf-8"))  # 🛠️ FIXED
         logger.info("📥 Telegram-Update empfangen: %s", update.event_type())
         await dp.feed_update(bot=bot, update=update)
         return {"status": "ok"}
