@@ -1,5 +1,3 @@
-# core/buttons.py
-
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 def get_main_menu():
