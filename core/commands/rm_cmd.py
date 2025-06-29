@@ -1,8 +1,15 @@
 import logging
-from aiogram import types, Dispatcher, Bot
+from aiogram import types
+from aiogram.dispatcher import Dispatcher
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram import Bot
+
 from core.database import get_wallets, remove_wallet
 
 logger = logging.getLogger(__name__)
+
+# Router ist optional in aiogram 2.x – du verwendest Dispatcher direkt
+# Also nutzen wir weiterhin klassische Registrierung
 
 # /rm Befehl – zeigt Wallets zur Auswahl an
 async def remove_wallet_cmd(message: types.Message):
@@ -12,11 +19,11 @@ async def remove_wallet_cmd(message: types.Message):
         await message.answer("❌ Keine Wallets gefunden.")
         return
 
-    keyboard = types.InlineKeyboardMarkup()
+    keyboard = InlineKeyboardMarkup()
     for entry in wallets:
         display = f"{entry['tag']} - {entry['wallet'][:5]}...{entry['wallet'][-4:]}"
         callback_data = f"rm_{entry['wallet']}"
-        keyboard.add(types.InlineKeyboardButton(text=display, callback_data=callback_data))
+        keyboard.add(InlineKeyboardButton(text=display, callback_data=callback_data))
 
     await message.answer("🗑 Wähle eine Wallet zum Entfernen:", reply_markup=keyboard)
 
