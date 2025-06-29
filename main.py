@@ -65,13 +65,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ----------------------------------------------
+# Telegram Webhook Endpoint
+# ----------------------------------------------
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     try:
         body = await request.body()
         update = Update.model_validate_json(body)
+        logger.info("📥 Telegram-Update empfangen: %s", update.event_type())
         await dp.feed_update(bot=bot, update=update)
         return {"status": "ok"}
     except Exception as e:
         logger.exception("❌ Fehler im Webhook:")
         return {"status": "error", "detail": str(e)}
+
+# ----------------------------------------------
+# Healthcheck Endpoints für Railway & Telegram
+# ----------------------------------------------
+@app.get("/")
+async def root():
+    return {"status": "ok"}
+
+@app.get("/health")
+async def healthcheck():
+    return {"status": "healthy"}
