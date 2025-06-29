@@ -14,10 +14,12 @@ def shorten_address(address: str) -> str:
 def format_sol(value: float) -> str:
     return f"{value:.2f} ◎"
 
-def format_pnl(value: float) -> str:
+def format_pnl(value: int) -> str:
+    if value is None:
+        return "⚪️ PnL(n/a)"
     emoji = "🟢" if value >= 0 else "🔴"
-    return f"{emoji} {value:+.2f}◎"
-
+    return f"{emoji} PnL({value:+} $)"
+    
 def generate_dexscreener_link(token_address: str) -> str:
     return f"https://dexscreener.com/solana/{token_address}"
 
