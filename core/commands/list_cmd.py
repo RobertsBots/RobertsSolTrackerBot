@@ -11,6 +11,7 @@ router = Router()
 @router.message(F.text == "/list")
 async def list_wallets_cmd(message: types.Message):
     wallets = get_wallets(message.from_user.id)
+
     if not wallets:
         await message.answer("📭 Keine Wallets vorhanden.")
         return
@@ -33,4 +34,4 @@ async def list_wallets_cmd(message: types.Message):
         )
 
     await message.answer(response, parse_mode="Markdown")
-    logger.info(f"Wallet-Übersicht gesendet – User {message.from_user.id}")
+    logger.info(f"📄 Wallet-Übersicht gesendet – User {message.from_user.id}")
