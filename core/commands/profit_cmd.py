@@ -12,6 +12,7 @@ router = Router()
 @router.message(Command("profit"))
 async def profit_cmd(message: types.Message):
     args = message.text.split()
+
     if len(args) != 3:
         await message.answer(
             "❗️Falsche Nutzung von /profit\n\nBitte nutze:\n`/profit <WALLET> <+/-BETRAG>`",
