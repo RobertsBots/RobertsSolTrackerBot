@@ -7,7 +7,7 @@ from .rm_cmd import register_handlers as register_rm_cmd
 from .list_cmd import register_handlers as register_list_cmd
 from .profit_cmd import register_handlers as register_profit_cmd
 from .finder_cmd import register_handlers as register_finder_cmd
-from .callbacks import register_handlers as register_callback_buttons  # 🆕
+from .callbacks import register_callback_buttons  # 🔁 Button-Handler
 
 # Hauptfunktion zur Handler-Registrierung
 def main_router(dp: Dispatcher):
@@ -17,4 +17,4 @@ def main_router(dp: Dispatcher):
     register_list_cmd(dp)
     register_profit_cmd(dp)
     register_finder_cmd(dp)
-    register_callback_buttons(dp)  # 🆕 Buttons aus Inline-Menü
+    register_callback_buttons(dp)  # 🔁 Wichtig für Inline-Buttons
