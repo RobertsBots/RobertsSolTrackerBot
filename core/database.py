@@ -7,9 +7,13 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError("❌ SUPABASE_URL oder SUPABASE_KEY fehlen in den Umgebungsvariablen.")
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def add_wallet(user_id: int, wallet: str, tag: str = ""):
+# ✅ Wallets
+def add_wallet(user_id: int, wallet: str, tag: str = "") -> bool:
     existing = supabase.table("wallets").select("*").eq("wallet", wallet).eq("user_id", user_id).execute()
     if existing.data:
         return False
@@ -46,7 +50,11 @@ def update_pnl(wallet: str, amount: float):
         wins += 1
     else:
         losses += 1
-    supabase.table("wallets").update({"pnl": pnl, "wins": wins, "losses": losses}).eq("wallet", wallet).execute()
+    supabase.table("wallets").update({
+        "pnl": pnl,
+        "wins": wins,
+        "losses": losses
+    }).eq("wallet", wallet).execute()
 
 def reset_wallets():
     supabase.table("wallets").delete().neq("wallet", "").execute()
@@ -58,7 +66,7 @@ def set_wallets(wallets):
 def update_tag(wallet: str, new_tag: str):
     supabase.table("wallets").update({"tag": new_tag}).eq("wallet", wallet).execute()
 
-# 🔥 Fehlende Funktionen für Finder-Modus
+# ✅ Finder-Modus
 def set_finder_mode(user_id: int, mode: str):
     result = supabase.table("users").select("*").eq("user_id", user_id).execute()
     if result.data:
