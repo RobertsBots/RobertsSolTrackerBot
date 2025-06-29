@@ -1,40 +1,36 @@
 import logging
-from aiogram import types, Bot
-from aiogram.dispatcher import Dispatcher
+from aiogram import types, Dispatcher, Bot
 from core.database import get_wallets
-from core.utils import format_pnl, colorize_winrate
+from core.utils import format_pnl
+from core.pnlsystem import calculate_wallet_wr
 
 logger = logging.getLogger(__name__)
 
-# /list Befehl – zeigt alle Wallets
 async def list_wallets_cmd(message: types.Message):
     Bot.set_current(message.bot)
-    wallets = await get_wallets(message.from_user.id)
+    user_id = message.from_user.id
+    wallets = await get_wallets(user_id=user_id)
 
     if not wallets:
-        await message.answer("📭 Keine Wallets vorhanden.")
+        await message.answer("📭 Du hast noch keine Wallets hinzugefügt.")
         return
 
-    response = "📋 *Getrackte Wallets:*\n\n"
-    for w in wallets:
-        wallet = w["wallet"]
-        tag = w.get("tag", "🏷️ Kein Tag")
-        profit = w.get("pnl", 0.0)
-        wins = w.get("wins", 0)
-        losses = w.get("losses", 0)
+    response = "📄 <b>Deine getrackten Wallets:</b>\n\n"
 
+    for wallet in wallets:
+        address = wallet.get("address", "Unbekannt")
+        tag = wallet.get("tag", "-")
+        profit = wallet.get("profit", 0)
+        wr = calculate_wallet_wr(wallet)
         pnl_text = format_pnl(profit)
-        winrate_text = colorize_winrate(wins, losses)
 
         response += (
-            f"🧠 *{tag}*\n"
-            f"📟 `{wallet}`\n"
-            f"{winrate_text} – {pnl_text}\n\n"
+            f"<code>{address}</code>\n"
+            f"🏷 Tag: <b>{tag}</b>\n"
+            f"📈 {wr} | {pnl_text}\n\n"
         )
 
-    await message.answer(response, parse_mode="Markdown")
-    logger.info(f"📄 Wallet-Übersicht gesendet – User {message.from_user.id}")
+    await message.answer(response, parse_mode="HTML")
 
-# Registrierung
-def register_list_cmd(dp: Dispatcher):
+def register_handlers(dp: Dispatcher):
     dp.register_message_handler(list_wallets_cmd, commands=["list"])
