@@ -6,6 +6,9 @@ from aiogram.fsm.strategy import FSMStrategy
 from aiogram.client.default import DefaultBotProperties
 from aiogram.types import Update
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from core.commands import main_router
@@ -26,7 +29,6 @@ logger = logging.getLogger(__name__)
 # Bot Setup
 # ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
-
 bot = Bot(
     token=TOKEN,
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
@@ -34,7 +36,7 @@ bot = Bot(
 dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
 
 # ------------------------------------------------
-# Router Setup (NUR HIER!)
+# Router Setup (ZENTRAL!)
 # ------------------------------------------------
 dp.include_router(main_router)
 
@@ -53,11 +55,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.middleware.cors import CORSMiddleware
-
-# CORS Middleware (nur zur Sicherheit)
+# ------------------------------------------------
+# CORS Middleware (optional)
+# ------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -65,24 +65,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ----------------------------------------------
-# Telegram Webhook Endpoint (FIXED)
-# ----------------------------------------------
+# ------------------------------------------------
+# Telegram Webhook Endpoint (STABIL!)
+# ------------------------------------------------
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     try:
-        data = await request.json()  # ✅ FIXED: parse JSON directly
-        update = Update.model_validate(data)
-        logger.info("📥 Telegram-Update empfangen: %s", update.event_type())
+        json_data = await request.json()
+        logger.debug(f"📨 Raw Telegram JSON: {json_data}")
+        update = Update(**json_data)  # Sicherste Variante für aiogram 3.x
+        logger.info("📥 Telegram-Update empfangen.")
         await dp.feed_update(bot=bot, update=update)
         return {"status": "ok"}
     except Exception as e:
         logger.exception("❌ Fehler im Webhook:")
-        return {"status": "error", "detail": str(e)}
+        return JSONResponse(status_code=500, content={"status": "error", "detail": str(e)})
 
-# ----------------------------------------------
+# ------------------------------------------------
 # Healthcheck Endpoints für Railway & Telegram
-# ----------------------------------------------
+# ------------------------------------------------
 @app.get("/")
 async def root():
     return {"status": "ok"}
