@@ -28,10 +28,10 @@ async def start_cmd(message: types.Message):
         f"Willkommen, {hbold(message.from_user.first_name)}! 👋\n\n"
         "Dieser Bot trackt automatisch Solana-Wallets und benachrichtigt dich über alle Käufe/Verkäufe.\n\n"
         "Verfügbare Befehle:\n"
-        "/add <WALLET> <TAG> – Wallet hinzufügen\n"
+        "/add [WALLET] [TAG] – Wallet hinzufügen\n"
         "/rm – Wallet entfernen\n"
         "/list – Alle Wallets anzeigen\n"
-        "/profit <WALLET> <+/-BETRAG> – Manuellen Profit setzen\n"
+        "/profit [WALLET] [+/-BETRAG] – Manuellen Profit setzen\n"
         "/finder – SmartFinder Modus\n\n"
         "Oder benutze die Buttons 👇",
         reply_markup=keyboard,
