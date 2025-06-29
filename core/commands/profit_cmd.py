@@ -1,5 +1,6 @@
 import logging
-from aiogram import types, Dispatcher, Bot
+from aiogram import types, Bot
+from aiogram.dispatcher import Dispatcher
 from core.database import update_pnl
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,10 @@ async def profit_cmd(message: types.Message):
     try:
         amount = float(raw_amount)
     except ValueError:
-        await message.answer("❗️Ungültiger Betrag. Beispiel: `/profit ABC...XYZ +1.5`", parse_mode="Markdown")
+        await message.answer(
+            "❗️Ungültiger Betrag. Beispiel: `/profit ABC...XYZ +1.5`",
+            parse_mode="Markdown"
+        )
         return
 
     try:
@@ -36,7 +40,7 @@ async def profit_cmd(message: types.Message):
         logger.error(f"Fehler beim Update von Profit: {e}")
         await message.answer("⚠️ Ein Fehler ist aufgetreten beim Setzen des Profits.")
 
-# Callback für Button-Handler (profit:<wallet>)
+# Callback-Handler für Buttons mit "profit:<wallet>"
 async def handle_profit_callback(callback_query: types.CallbackQuery):
     Bot.set_current(callback_query.bot)
     await callback_query.message.edit_text(
