@@ -1,14 +1,13 @@
 # core/commands/list_cmd.py
 
 import logging
-from aiogram import Router, types, F
+from aiogram import types, Dispatcher
 from core.database import get_wallets
 from core.utils import format_pnl, colorize_winrate
 
 logger = logging.getLogger(__name__)
-router = Router()
 
-@router.message(F.text == "/list")
+# /list Befehl – zeigt alle Wallets
 async def list_wallets_cmd(message: types.Message):
     wallets = get_wallets(message.from_user.id)
 
@@ -35,3 +34,7 @@ async def list_wallets_cmd(message: types.Message):
 
     await message.answer(response, parse_mode="Markdown")
     logger.info(f"📄 Wallet-Übersicht gesendet – User {message.from_user.id}")
+
+# Registrierung
+def register_handlers(dp: Dispatcher):
+    dp.register_message_handler(list_wallets_cmd, commands=["list"])
