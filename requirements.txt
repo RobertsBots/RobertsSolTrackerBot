@@ -1,8 +1,8 @@
-aiogram==3.5.0
+aiogram==3.0.0
 httpx==0.24.0
 supabase==1.1.1
 supafunc==0.2.3
 fastapi==0.95.2
 apscheduler==3.10.4
 uvicorn==0.24.0
-pydantic==2.6.4
+pydantic==1.10.13
