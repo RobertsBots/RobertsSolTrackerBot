@@ -1,5 +1,6 @@
 from datetime import datetime
 import httpx
+import os
 
 def shorten_address(address: str) -> str:
     return f"{address[:4]}...{address[-4:]}"
@@ -43,7 +44,12 @@ def colorize_winrate(wins: int, losses: int) -> str:
     emoji = "🟢" if winrate >= 60 else "🔴"
     return f"{emoji} WR({wins}/{total})"
 
-# Optional: Falls du woanders noch die reine Zahl brauchst
 def calculate_winrate(wins: int, losses: int) -> float:
     total = wins + losses
     return round((wins / total) * 100, 2) if total > 0 else 0.0
+
+def get_webhook_url() -> str:
+    base_url = os.getenv("RAILWAY_STATIC_URL")
+    if not base_url:
+        raise ValueError("❌ RAILWAY_STATIC_URL ist nicht gesetzt.")
+    return f"{base_url}/webhook"
