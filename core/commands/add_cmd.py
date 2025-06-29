@@ -32,5 +32,5 @@ async def add_wallet_cmd(message: types.Message):
         )
 
 # Registrierung für Dispatcher
-def register_handlers(dp: Dispatcher):
+def register_add_cmd(dp: Dispatcher):
     dp.register_message_handler(add_wallet_cmd, commands=["add"])
