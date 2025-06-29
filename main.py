@@ -1,11 +1,10 @@
-# main.py
-
 import os
 import json
 import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
+
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
@@ -27,22 +26,25 @@ logger = logging.getLogger(__name__)
 # Telegram Bot Setup
 # ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
+if not TOKEN:
+    raise ValueError("❌ BOT_TOKEN Umgebungsvariable fehlt!")
+
 bot = Bot(token=TOKEN, parse_mode="HTML")
-Bot.set_current(bot)  # ✅ Wichtig für .answer() & aiogram 2.x Kontext
+Bot.set_current(bot)  # 🛠️ Wichtig für aiogram 2.25.2 Kontexte
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
 # ------------------------------------------------
 # Router Setup
 # ------------------------------------------------
-main_router(dp)  # Alle Handler registrieren
+main_router(dp)  # 📡 Alle Commands & Button-Handler registrieren
 
 # ------------------------------------------------
 # FastAPI Setup
 # ------------------------------------------------
 app = FastAPI()
 
-# CORS Middleware (z. B. für Render)
+# CORS Middleware – für Render zwingend nötig
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
