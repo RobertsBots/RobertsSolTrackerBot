@@ -29,7 +29,7 @@ async def profit_cmd(message: types.Message):
         return
 
     try:
-        update_pnl(wallet, amount)
+        await update_pnl(wallet, amount)
         color = "🟢" if amount > 0 else "🔴"
         await message.answer(
             f"{color} Profit für `{wallet}` aktualisiert: `{amount:+.2f} SOL`",
