@@ -1,7 +1,5 @@
-# core/commands/finder_cmd.py
-
 import logging
-from aiogram import types, Dispatcher
+from aiogram import types, Dispatcher, Bot
 from core.database import set_finder_mode
 from core.alerts import notify_user
 
@@ -9,6 +7,7 @@ logger = logging.getLogger(__name__)
 
 # /finder Menü
 async def finder_menu_cmd(message: types.Message):
+    Bot.set_current(message.bot)
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
         [
             types.InlineKeyboardButton(text="🌕 Moonbags", callback_data="moonbags"),
@@ -22,6 +21,7 @@ async def finder_menu_cmd(message: types.Message):
 
 # Auswahl behandeln
 async def handle_finder_selection(callback_query: types.CallbackQuery):
+    Bot.set_current(callback_query.bot)
     user_id = callback_query.from_user.id
     selection = callback_query.data
 
