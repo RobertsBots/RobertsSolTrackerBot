@@ -60,16 +60,24 @@ app = FastAPI(lifespan=lifespan)
 async def telegram_webhook(req: Request):
     try:
         raw = await req.body()
-        logger.debug(f"📦 RAW Webhook body:\n{raw.decode()}")
-        data = await req.json()
+        logger.warning(f"📦 RAW TELEGRAM BODY:\n{raw.decode(errors='ignore')}")
+
+        try:
+            data = await req.json()
+        except Exception as json_err:
+            logger.exception(f"❌ JSON-Decode-Fehler: {json_err}")
+            return {"status": "error", "detail": "Invalid JSON"}
+
         try:
             update = Update(**data)
         except Exception as parse_err:
-            logger.exception("❌ Fehler beim Parsen des Telegram-Updates:")
+            logger.exception(f"❌ Fehler beim Parsen des Updates:\n{data}")
             return {"status": "error", "detail": f"Parsing error: {str(parse_err)}"}
 
         await dp.feed_update(bot, update)
+        logger.info("✅ Update erfolgreich verarbeitet.")
         return {"status": "ok"}
+
     except Exception as e:
-        logger.exception("❌ Fehler im Webhook:")
-        return {"status": "error", "detail": str(e)}
+        logger.exception("🔥 Kritischer Fehler im Webhook-Handler:")
+        return {"status": "error", "detail": f"Unhandled Exception: {str(e)}"}
