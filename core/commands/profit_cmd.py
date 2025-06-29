@@ -1,13 +1,12 @@
-# core/commands/profit_cmd.py
-
 import logging
-from aiogram import types, Dispatcher
+from aiogram import types, Dispatcher, Bot
 from core.database import update_pnl
 
 logger = logging.getLogger(__name__)
 
 # /profit <WALLET> <+/-BETRAG>
 async def profit_cmd(message: types.Message):
+    Bot.set_current(message.bot)
     args = message.text.split()
 
     if len(args) != 3:
@@ -39,6 +38,7 @@ async def profit_cmd(message: types.Message):
 
 # Callback für Button-Handler (profit:<wallet>)
 async def handle_profit_callback(callback_query: types.CallbackQuery):
+    Bot.set_current(callback_query.bot)
     await callback_query.message.edit_text(
         "❗️Bitte sende den Profit-Wert manuell als Befehl im Format:\n`/profit <WALLET> <+/-BETRAG>`",
         parse_mode="Markdown"
