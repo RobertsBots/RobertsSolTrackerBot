@@ -8,8 +8,9 @@ from aiogram.types import Update
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 
-from core.commands import main_router  # WICHTIG: Nur hier einbinden
+from core.commands import main_router
 from core.cron import setup_cron_jobs
+from core.utils import get_webhook_url
 
 # ------------------------------------------------
 # Logging Setup
@@ -25,11 +26,6 @@ logger = logging.getLogger(__name__)
 # Bot Setup
 # ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-
-if not WEBHOOK_URL:
-    logger.error("❌ WEBHOOK_URL ist nicht gesetzt. Bitte in Railway als vollständige HTTPS-URL eintragen.")
-    raise RuntimeError("WEBHOOK_URL is not set.")
 
 bot = Bot(
     token=TOKEN,
@@ -47,7 +43,8 @@ dp.include_router(main_router)
 # ------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await bot.set_webhook(WEBHOOK_URL)
+    webhook_url = get_webhook_url()
+    await bot.set_webhook(url=webhook_url)
     setup_cron_jobs(dp, bot)
     logger.info("✅ Webhook gesetzt & Cron gestartet.")
     yield
