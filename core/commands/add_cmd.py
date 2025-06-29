@@ -1,14 +1,12 @@
 # core/commands/add_cmd.py
 
 import logging
-from aiogram import Router, types
-from aiogram.filters import Command
+from aiogram import types, Dispatcher
 from core.database import add_wallet
 
 logger = logging.getLogger(__name__)
-router = Router()
 
-@router.message(Command("add"))
+# Handler-Funktion für /add
 async def add_wallet_cmd(message: types.Message):
     args = message.text.split()
 
@@ -23,7 +21,17 @@ async def add_wallet_cmd(message: types.Message):
     success = add_wallet(user_id=message.from_user.id, wallet=wallet, tag=tag)
 
     if success:
-        await message.answer(f"✅ Wallet `{wallet}` mit Tag `{tag}` hinzugefügt.", parse_mode="Markdown")
+        await message.answer(
+            f"✅ Wallet `{wallet}` mit Tag `{tag}` hinzugefügt.",
+            parse_mode="Markdown"
+        )
         logger.info(f"Wallet hinzugefügt: {wallet} (Tag: {tag}) – User {message.from_user.id}")
     else:
-        await message.answer(f"⚠️ Wallet `{wallet}` ist bereits vorhanden.", parse_mode="Markdown")
+        await message.answer(
+            f"⚠️ Wallet `{wallet}` ist bereits vorhanden.",
+            parse_mode="Markdown"
+        )
+
+# Registrierung für Dispatcher
+def register_handlers(dp: Dispatcher):
+    dp.register_message_handler(add_wallet_cmd, commands=["add"])
