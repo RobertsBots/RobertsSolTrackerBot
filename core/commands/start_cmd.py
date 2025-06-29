@@ -39,5 +39,5 @@ async def start_cmd(message: types.Message):
     )
 
 # Registrierung für Dispatcher
-def register_handlers(dp: Dispatcher):
+def register_start_cmd(dp: Dispatcher):
     dp.register_message_handler(start_cmd, commands=["start"])
