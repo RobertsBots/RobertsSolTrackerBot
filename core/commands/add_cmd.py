@@ -17,7 +17,7 @@ async def add_wallet_cmd(message: types.Message):
         return
 
     wallet, tag = args[1], args[2]
-    success = add_wallet(user_id=message.from_user.id, wallet=wallet, tag=tag)
+    success = await add_wallet(user_id=message.from_user.id, wallet=wallet, tag=tag)
 
     if success:
         await message.answer(
