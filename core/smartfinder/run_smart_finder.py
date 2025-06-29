@@ -1,10 +1,15 @@
+# core/smartfinder/run_smart_finder.py
+
 import os
 import httpx
 import logging
+from aiogram import Bot
 from core.database import add_wallet
 from core.helpers import post_wallet_detection_message
-from aiogram import Bot
 
+# -------------------------------------
+# ENV Variablen & API Setup
+# -------------------------------------
 DUNE_API_KEY = os.getenv("DUNE_API_KEY")
 DUNE_QUERY_ID = "4632804"
 TELEGRAM_CHANNEL_ID = os.getenv("CHANNEL_ID")
@@ -16,12 +21,16 @@ headers = {
 
 logger = logging.getLogger(__name__)
 
+# -------------------------------------
+# Hauptlogik – Dune Wallet Fetch & Filter
+# -------------------------------------
 async def run_smart_wallet_finder(bot: Bot):
     url = f"https://api.dune.com/api/v1/query/{DUNE_QUERY_ID}/results"
-    
+
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             response = await client.get(url, headers=headers)
+            response.raise_for_status()
 
         data = response.json()
         rows = data.get("result", {}).get("rows", [])
@@ -40,6 +49,7 @@ async def run_smart_wallet_finder(bot: Bot):
                     "sol_balance": row.get("sol_balance", 0)
                 }
 
+                # User-ID 0 = systemweiter AutoFinder-Eintrag
                 added = add_wallet(user_id=0, wallet=wallet_data["address"], tag="🚀 AutoDetected")
 
                 if added:
@@ -53,4 +63,4 @@ async def run_smart_wallet_finder(bot: Bot):
                     logger.info(f"⚠️ Wallet bereits bekannt: {wallet_data['address']}")
 
     except Exception as e:
-        logger.error(f"❌ Fehler beim Abrufen der Smart Wallets: {e}")
+        logger.exception(f"❌ Fehler beim Abrufen der Smart Wallets via Dune API: {e}")
