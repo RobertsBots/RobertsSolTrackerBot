@@ -4,6 +4,8 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.enums import ParseMode
 from core.database import add_wallet
 
+logger = logging.getLogger(__name__)
+
 async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict):
     try:
         address = wallet.get("address", "N/A")
@@ -34,15 +36,19 @@ async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict)
 
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="📊 Auf Birdeye", url=f"https://birdeye.so/address/{address}?chain=solana")]
+                [InlineKeyboardButton(
+                    text="📊 Auf Birdeye",
+                    url=f"https://birdeye.so/address/{address}?chain=solana"
+                )]
             ]
         )
 
         await bot.send_message(
             chat_id=channel_id,
-            text=message,
+            text=message.strip(),
             reply_markup=keyboard,
             parse_mode=ParseMode.HTML
         )
+        logger.info(f"📬 Wallet-Detection gesendet für {address}")
     except Exception as e:
-        logging.error(f"❌ Fehler beim Posten der Wallet Detection Nachricht: {e}")
+        logger.error(f"❌ Fehler beim Posten der Wallet Detection Nachricht: {e}")
