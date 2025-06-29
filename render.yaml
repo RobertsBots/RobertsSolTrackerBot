@@ -1,21 +1,10 @@
 services:
   - type: web
-    name: roberts-sol-tracker-bot
+    name: roberts-tracker-bot
     env: python
-    pythonVersion: 3.10.13
-    buildCommand: pip install -r requirements.txt
-    startCommand: python main.py
     plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host=0.0.0.0 --port=8000"
     envVars:
-      - key: BOT_TOKEN
-        sync: false
-      - key: CHANNEL_ID
-        sync: false
-      - key: WEBHOOK_URL
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_API_KEY
-        sync: false
-      - key: DEBUG
-        value: "True"
+      - key: PYTHON_VERSION
+        value: 3.10.13
