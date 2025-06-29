@@ -1,3 +1,5 @@
+# main.py
+
 import os
 import logging
 from aiogram import Bot, Dispatcher
@@ -7,7 +9,6 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.types import Update
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
 from starlette.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -56,7 +57,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # ------------------------------------------------
-# CORS Middleware (optional)
+# CORS Middleware (optional für Render)
 # ------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
@@ -72,7 +73,7 @@ app.add_middleware(
 async def telegram_webhook(request: Request):
     try:
         raw_body = await request.body()
-        update = Update.model_validate_json(raw_body)  # ✅ sicherste Variante
+        update = Update.model_validate_json(raw_body)
         logger.info("📥 Telegram-Update empfangen: %s", update.event_type())
         await dp.feed_update(bot=bot, update=update)
         return {"status": "ok"}
@@ -81,7 +82,7 @@ async def telegram_webhook(request: Request):
         return JSONResponse(status_code=500, content={"status": "error", "detail": str(e)})
 
 # ------------------------------------------------
-# Healthcheck Endpoints für Railway & Telegram
+# Healthcheck Endpoints
 # ------------------------------------------------
 @app.get("/")
 async def root():
