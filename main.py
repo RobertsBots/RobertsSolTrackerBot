@@ -7,7 +7,6 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.utils.executor import start_webhook
 
 from core.commands import main_router
 from core.cron import setup_cron_jobs
@@ -66,32 +65,17 @@ async def healthcheck():
     return {"status": "healthy"}
 
 # ------------------------------------------------
-# Webhook-Startup-Funktionen
+# Startup & Shutdown Hooks
 # ------------------------------------------------
 WEBHOOK_URL = get_webhook_url()
-WEBAPP_HOST = "0.0.0.0"
-WEBAPP_PORT = int(os.getenv("PORT", 8000))
 
-async def on_startup(dp: Dispatcher):
+@app.on_event("startup")
+async def startup():
     await bot.set_webhook(WEBHOOK_URL)
     setup_cron_jobs(dp, bot)
     logger.info("✅ Webhook gesetzt & Cronjobs gestartet.")
 
-async def on_shutdown(dp: Dispatcher):
+@app.on_event("shutdown")
+async def shutdown():
     await bot.delete_webhook()
     logger.info("🔒 Webhook entfernt.")
-
-# ------------------------------------------------
-# Render Start
-# ------------------------------------------------
-if __name__ == "__main__":
-    start_webhook(
-        dispatcher=dp,
-        webhook_path="",
-        on_startup=on_startup,
-        on_shutdown=on_shutdown,
-        skip_updates=True,
-        host=WEBAPP_HOST,
-        port=WEBAPP_PORT,
-        webhook_url=WEBHOOK_URL,
-    )
