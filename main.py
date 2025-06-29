@@ -69,35 +69,12 @@ app.add_middleware(
 )
 
 @app.post("/webhook")
-async def telegram_webhook(req: Request):
+async def telegram_webhook(request: Request):
     try:
-        content_type = req.headers.get("content-type", "")
-        if "application/json" not in content_type:
-            logger.warning(f"⚠️ Unerwarteter Content-Type: {content_type}")
-            return JSONResponse(status_code=400, content={"error": "Invalid Content-Type"})
-
-        raw = await req.body()
-        logger.warning(f"📦 RAW BODY:\n{raw.decode(errors='ignore')}")
-
-        try:
-            data = await req.json()
-        except Exception as json_err:
-            logger.exception("❌ JSON Decode Error:")
-            return {"status": "error", "detail": str(json_err)}
-
-        try:
-            update = Update(**data)
-        except Exception as parse_err:
-            logger.exception(f"❌ Fehler beim Parsen:\n{data}")
-            return {"status": "error", "detail": f"Parsing error: {str(parse_err)}"}
-
-        await dp.feed_update(bot, update)
-        logger.info("✅ Update verarbeitet")
+        body = await request.body()
+        update = Update.model_validate_json(body)
+        await dp.feed_update(bot=bot, update=update)
         return {"status": "ok"}
-
-    except RequestValidationError as ve:
-        logger.exception("❌ FastAPI RequestValidationError:")
-        return JSONResponse(status_code=422, content={"detail": str(ve)})
     except Exception as e:
-        logger.exception("🔥 Unbekannter Webhook-Fehler:")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        logger.exception("❌ Fehler im Webhook:")
+        return {"status": "error", "detail": str(e)}
