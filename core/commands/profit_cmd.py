@@ -1,15 +1,12 @@
 # core/commands/profit_cmd.py
 
 import logging
-from aiogram import Router, types, F
-from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram import types, Dispatcher
 from core.database import update_pnl
 
 logger = logging.getLogger(__name__)
-router = Router()
 
-@router.message(Command("profit"))
+# /profit <WALLET> <+/-BETRAG>
 async def profit_cmd(message: types.Message):
     args = message.text.split()
 
@@ -40,9 +37,14 @@ async def profit_cmd(message: types.Message):
         logger.error(f"Fehler beim Update von Profit: {e}")
         await message.answer("⚠️ Ein Fehler ist aufgetreten beim Setzen des Profits.")
 
-@router.callback_query(F.data.startswith("profit:"))
+# Callback für Button-Handler (profit:<wallet>)
 async def handle_profit_callback(callback_query: types.CallbackQuery):
     await callback_query.message.edit_text(
         "❗️Bitte sende den Profit-Wert manuell als Befehl im Format:\n`/profit <WALLET> <+/-BETRAG>`",
         parse_mode="Markdown"
     )
+
+# Registrierung
+def register_handlers(dp: Dispatcher):
+    dp.register_message_handler(profit_cmd, commands=["profit"])
+    dp.register_callback_query_handler(handle_profit_callback, lambda c: c.data.startswith("profit:"))
