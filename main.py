@@ -56,28 +56,48 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.middleware.cors import CORSMiddleware
+
+# CORS Middleware (nur zur Sicherheit)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.post("/webhook")
 async def telegram_webhook(req: Request):
     try:
+        content_type = req.headers.get("content-type", "")
+        if "application/json" not in content_type:
+            logger.warning(f"⚠️ Unerwarteter Content-Type: {content_type}")
+            return JSONResponse(status_code=400, content={"error": "Invalid Content-Type"})
+
         raw = await req.body()
-        logger.warning(f"📦 RAW TELEGRAM BODY:\n{raw.decode(errors='ignore')}")
+        logger.warning(f"📦 RAW BODY:\n{raw.decode(errors='ignore')}")
 
         try:
             data = await req.json()
         except Exception as json_err:
-            logger.exception(f"❌ JSON-Decode-Fehler: {json_err}")
-            return {"status": "error", "detail": "Invalid JSON"}
+            logger.exception("❌ JSON Decode Error:")
+            return {"status": "error", "detail": str(json_err)}
 
         try:
             update = Update(**data)
         except Exception as parse_err:
-            logger.exception(f"❌ Fehler beim Parsen des Updates:\n{data}")
+            logger.exception(f"❌ Fehler beim Parsen:\n{data}")
             return {"status": "error", "detail": f"Parsing error: {str(parse_err)}"}
 
         await dp.feed_update(bot, update)
-        logger.info("✅ Update erfolgreich verarbeitet.")
+        logger.info("✅ Update verarbeitet")
         return {"status": "ok"}
 
+    except RequestValidationError as ve:
+        logger.exception("❌ FastAPI RequestValidationError:")
+        return JSONResponse(status_code=422, content={"detail": str(ve)})
     except Exception as e:
-        logger.exception("🔥 Kritischer Fehler im Webhook-Handler:")
-        return {"status": "error", "detail": f"Unhandled Exception: {str(e)}"}
+        logger.exception("🔥 Unbekannter Webhook-Fehler:")
+        return JSONResponse(status_code=500, content={"error": str(e)})
