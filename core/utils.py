@@ -49,7 +49,7 @@ def calculate_winrate(wins: int, losses: int) -> float:
     return round((wins / total) * 100, 2) if total > 0 else 0.0
 
 def get_webhook_url() -> str:
-    base_url = os.getenv("WEBHOOK_URL") or os.getenv("RAILWAY_STATIC_URL")
+    base_url = os.getenv("WEBHOOK_URL") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("RAILWAY_STATIC_URL")
     if not base_url:
-        raise ValueError("❌ WEBHOOK_URL oder RAILWAY_STATIC_URL ist nicht gesetzt.")
+        raise ValueError("❌ WEBHOOK_URL, RENDER_EXTERNAL_URL oder RAILWAY_STATIC_URL ist nicht gesetzt.")
     return f"{base_url}/webhook"
