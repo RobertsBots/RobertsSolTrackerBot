@@ -1,52 +1,37 @@
 import logging
 from aiogram import types, Dispatcher, Bot
 from core.buttons import get_main_menu, get_smart_finder_menu
+from core.database import set_finder_mode
+from core.alerts import notify_user
 
 logger = logging.getLogger(__name__)
 
-
-# 📈 Add Wallet
-async def handle_add_wallet_button(callback_query: types.CallbackQuery):
-    Bot.set_current(callback_query.bot)
-    await callback_query.answer()  # ⬅️ wichtig zur Vermeidung von "loading..." Bug
-    await callback_query.message.answer(
-        "📥 Bitte benutze den Befehl:\n`/add <WALLET> <TAG>`",
-        parse_mode="Markdown"
-    )
-
-
-# 🗑 Remove Wallet
-async def handle_remove_wallet_button(callback_query: types.CallbackQuery):
+# 📈 Button: Add Wallet
+async def handle_add_wallet(callback_query: types.CallbackQuery):
     Bot.set_current(callback_query.bot)
     await callback_query.answer()
-    await callback_query.message.answer(
-        "🗑 Bitte nutze den Befehl `/rm`, um eine Wallet zu entfernen.",
-        parse_mode="Markdown"
-    )
+    await callback_query.message.answer("📥 Bitte benutze den Befehl:\n`/add <WALLET> <TAG>`", parse_mode="Markdown")
 
-
-# 💼 List Wallets
-async def handle_list_wallets_button(callback_query: types.CallbackQuery):
+# 🗑 Button: Remove Wallet
+async def handle_remove_wallet(callback_query: types.CallbackQuery):
     Bot.set_current(callback_query.bot)
     await callback_query.answer()
-    await callback_query.message.answer(
-        "📋 Bitte sende den Befehl `/list`, um alle Wallets zu sehen.",
-        parse_mode="Markdown"
-    )
+    await callback_query.message.answer("🗑 Bitte benutze den Befehl:\n`/rm`", parse_mode="Markdown")
 
-
-# 💰 Add Profit
-async def handle_add_profit_button(callback_query: types.CallbackQuery):
+# 💼 Button: List Wallets
+async def handle_list_wallets(callback_query: types.CallbackQuery):
     Bot.set_current(callback_query.bot)
     await callback_query.answer()
-    await callback_query.message.answer(
-        "💰 Bitte nutze den Befehl:\n`/profit <WALLET> <+/-BETRAG>`",
-        parse_mode="Markdown"
-    )
+    await callback_query.message.answer("📊 Bitte benutze den Befehl:\n`/list`", parse_mode="Markdown")
 
+# 💰 Button: Add Profit
+async def handle_add_profit(callback_query: types.CallbackQuery):
+    Bot.set_current(callback_query.bot)
+    await callback_query.answer()
+    await callback_query.message.answer("💰 Bitte benutze den Befehl:\n`/profit <WALLET> <+/-BETRAG>`", parse_mode="Markdown")
 
-# 🧠 Smart Finder → Menü
-async def handle_smart_finder_button(callback_query: types.CallbackQuery):
+# 🛰️ Button: SmartFinder
+async def handle_open_smart_finder(callback_query: types.CallbackQuery):
     Bot.set_current(callback_query.bot)
     await callback_query.answer()
     await callback_query.message.edit_text(
@@ -55,47 +40,39 @@ async def handle_smart_finder_button(callback_query: types.CallbackQuery):
         parse_mode="HTML"
     )
 
-
-# 🌕 Moonbags
-async def handle_finder_moonbags(callback_query: types.CallbackQuery):
+# 🔙 Button: Zurück zum Hauptmenü
+async def handle_back_to_main_menu(callback_query: types.CallbackQuery):
     Bot.set_current(callback_query.bot)
     await callback_query.answer()
     await callback_query.message.edit_text(
-        "✅ Finder aktiviert: 🌕 Moonbags"
-    )
-    from core.database import set_finder_mode
-    await set_finder_mode(callback_query.from_user.id, "moonbags")
-
-
-# ⚡️ Scalping Bags
-async def handle_finder_scalping(callback_query: types.CallbackQuery):
-    Bot.set_current(callback_query.bot)
-    await callback_query.answer()
-    await callback_query.message.edit_text(
-        "✅ Finder aktiviert: ⚡️ Scalping Bags"
-    )
-    from core.database import set_finder_mode
-    await set_finder_mode(callback_query.from_user.id, "scalpbags")
-
-
-# 🔙 Back to Main Menu
-async def handle_main_menu_back(callback_query: types.CallbackQuery):
-    Bot.set_current(callback_query.bot)
-    await callback_query.answer()
-    await callback_query.message.edit_text(
-        "🔙 Hauptmenü:",
+        "🏠 Hauptmenü – wähle eine Aktion:",
         reply_markup=get_main_menu()
     )
 
+# 🌕/⚡️/🛑 Finder-Auswahl
+async def handle_finder_selection(callback_query: types.CallbackQuery):
+    Bot.set_current(callback_query.bot)
+    selection = callback_query.data.replace("finder_", "")
+    user_id = callback_query.from_user.id
 
-# Registrierung
-def register_handlers(dp: Dispatcher):
-    dp.register_callback_query_handler(handle_add_wallet_button, lambda c: c.data == "add_wallet")
-    dp.register_callback_query_handler(handle_remove_wallet_button, lambda c: c.data == "remove_wallet")
-    dp.register_callback_query_handler(handle_list_wallets_button, lambda c: c.data == "list_wallets")
-    dp.register_callback_query_handler(handle_add_profit_button, lambda c: c.data == "add_profit")
-    dp.register_callback_query_handler(handle_smart_finder_button, lambda c: c.data == "smart_finder")
+    if selection == "moonbags":
+        await set_finder_mode(user_id, "moonbags")
+        await callback_query.message.edit_text("✅ Finder aktiviert: 🌕 Moonbags", reply_markup=get_main_menu())
+    elif selection == "scalping":
+        await set_finder_mode(user_id, "scalping")
+        await callback_query.message.edit_text("✅ Finder aktiviert: ⚡️ Scalping Bags", reply_markup=get_main_menu())
+    elif selection == "off":
+        await set_finder_mode(user_id, "off")
+        await callback_query.message.edit_text("🛑 Finder deaktiviert.", reply_markup=get_main_menu())
 
-    dp.register_callback_query_handler(handle_finder_moonbags, lambda c: c.data == "finder_moonbags")
-    dp.register_callback_query_handler(handle_finder_scalping, lambda c: c.data == "finder_scalping")
-    dp.register_callback_query_handler(handle_main_menu_back, lambda c: c.data == "main_menu")
+    await notify_user(user_id, f"🎯 Finder-Modus gesetzt: <b>{selection}</b>")
+
+# 🔁 Registrierung aller Button-Handler
+def register_callback_buttons(dp: Dispatcher):
+    dp.register_callback_query_handler(handle_add_wallet, lambda c: c.data == "add_wallet")
+    dp.register_callback_query_handler(handle_remove_wallet, lambda c: c.data == "remove_wallet")
+    dp.register_callback_query_handler(handle_list_wallets, lambda c: c.data == "list_wallets")
+    dp.register_callback_query_handler(handle_add_profit, lambda c: c.data == "add_profit")
+    dp.register_callback_query_handler(handle_open_smart_finder, lambda c: c.data == "smartfinder_menu" or c.data == "smart_finder")
+    dp.register_callback_query_handler(handle_back_to_main_menu, lambda c: c.data == "main_menu")
+    dp.register_callback_query_handler(handle_finder_selection, lambda c: c.data.startswith("finder_"))
