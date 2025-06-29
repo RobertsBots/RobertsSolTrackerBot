@@ -6,15 +6,15 @@ authors = ["Dein Name <deine@email.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.11"
-aiogram = "3.0.0"
+python = ">=3.10,<3.12"
+aiogram = "2.25.2"
 httpx = "0.24.0"
 supabase = "1.1.1"
 supafunc = "0.2.3"
 fastapi = "0.103.2"
 apscheduler = "3.10.4"
 uvicorn = "0.24.0"
-pydantic = ">=2.1.1"
+pydantic = "1.10.13"
 typing-extensions = "4.7.1"
 
 [build-system]
