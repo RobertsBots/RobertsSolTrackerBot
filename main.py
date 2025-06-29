@@ -1,4 +1,7 @@
+# main.py
+
 import os
+import json
 import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -50,7 +53,7 @@ app.add_middleware(
 async def telegram_webhook(request: Request):
     try:
         body = await request.body()
-        update = types.Update.de_json(body.decode("utf-8"))
+        update = types.Update(**json.loads(body.decode("utf-8")))
         await dp.process_update(update)
         return {"status": "ok"}
     except Exception as e:
