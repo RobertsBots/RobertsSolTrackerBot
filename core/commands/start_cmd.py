@@ -1,7 +1,5 @@
-# core/commands/start_cmd.py
-
 import logging
-from aiogram import types, Dispatcher
+from aiogram import types, Dispatcher, Bot
 from aiogram.utils.markdown import hbold
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -9,6 +7,7 @@ logger = logging.getLogger(__name__)
 
 # Handler-Funktion für /start
 async def start_cmd(message: types.Message):
+    Bot.set_current(message.bot)  # 🛠️ Fix für Kontextfehler
     logger.info(f"📩 /start empfangen von: {message.from_user.id} – {message.from_user.username}")
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
