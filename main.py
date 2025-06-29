@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------
 TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN, parse_mode="HTML")
+Bot.set_current(bot)  # ✅ Wichtig für .answer() & aiogram 2.x Kontext
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
