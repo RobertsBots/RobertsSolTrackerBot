@@ -71,10 +71,9 @@ app.add_middleware(
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     try:
-        json_data = await request.json()
-        logger.debug(f"📨 Raw Telegram JSON: {json_data}")
-        update = Update(**json_data)  # Sicherste Variante für aiogram 3.x
-        logger.info("📥 Telegram-Update empfangen.")
+        raw_body = await request.body()
+        update = Update.model_validate_json(raw_body)  # ✅ sicherste Variante
+        logger.info("📥 Telegram-Update empfangen: %s", update.event_type())
         await dp.feed_update(bot=bot, update=update)
         return {"status": "ok"}
     except Exception as e:
