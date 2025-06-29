@@ -1,7 +1,6 @@
 import logging
 from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from aiogram.enums import ParseMode
 from core.database import add_wallet
 
 logger = logging.getLogger(__name__)
@@ -16,12 +15,11 @@ async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict)
         sol = float(wallet.get("sol_balance", 0))
         tag = "🚀 AutoDetected"
 
-        # Prüfen, ob Wallet neu ist und speichern
+        # Prüfen, ob Wallet neu ist
         was_added = add_wallet(user_id=0, wallet=address, tag=tag)
         if not was_added:
-            return  # bereits getrackt → keine doppelte Meldung
+            return
 
-        # Nachricht aufbauen
         message = f"""
 🚨 <b>Neue smarte Wallet erkannt!</b>
 
@@ -34,20 +32,18 @@ async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict)
 <b>🏷️ Tag:</b> {tag}
         """
 
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(
-                    text="📊 Auf Birdeye",
-                    url=f"https://birdeye.so/address/{address}?chain=solana"
-                )]
-            ]
-        )
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="📊 Auf Birdeye",
+                url=f"https://birdeye.so/address/{address}?chain=solana"
+            )]
+        ])
 
         await bot.send_message(
             chat_id=channel_id,
             text=message.strip(),
             reply_markup=keyboard,
-            parse_mode=ParseMode.HTML
+            parse_mode="HTML"
         )
         logger.info(f"📬 Wallet-Detection gesendet für {address}")
     except Exception as e:
