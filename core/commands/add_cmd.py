@@ -1,13 +1,12 @@
-# core/commands/add_cmd.py
-
 import logging
-from aiogram import types, Dispatcher
+from aiogram import types, Dispatcher, Bot
 from core.database import add_wallet
 
 logger = logging.getLogger(__name__)
 
 # Handler-Funktion für /add
 async def add_wallet_cmd(message: types.Message):
+    Bot.set_current(message.bot)  # 🔧 Wichtig für aiogram 2.25.2
     args = message.text.split()
 
     if len(args) != 3:
