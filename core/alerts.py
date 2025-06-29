@@ -2,7 +2,7 @@
 
 import logging
 from aiogram import Bot
-from aiogram.exceptions import TelegramBadRequest, TelegramAPIError
+from aiogram.utils.exceptions import BadRequest, TelegramAPIError
 
 logger = logging.getLogger(__name__)
 
@@ -10,8 +10,8 @@ async def send_alert(bot: Bot, chat_id: int, text: str):
     try:
         await bot.send_message(chat_id=chat_id, text=text)
         logger.info(f"✅ Alert sent to chat_id {chat_id}: {text}")
-    except TelegramBadRequest as e:
-        logger.warning(f"⚠️ TelegramBadRequest while sending to {chat_id}: {e}")
+    except BadRequest as e:
+        logger.warning(f"⚠️ BadRequest while sending to {chat_id}: {e}")
     except TelegramAPIError as e:
         logger.error(f"❌ TelegramAPIError while sending to {chat_id}: {e}")
     except Exception as e:
