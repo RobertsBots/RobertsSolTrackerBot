@@ -14,9 +14,9 @@ async def list_wallets_cmd(message: types.Message):
 
     if not wallets:
         await message.answer(
-            "💤 Du hast aktuell keine Wallets zum Anzeigen.\n\n"
-            "Nutze `/add <wallet> <tag>`, um eine neue Wallet zu tracken.",
-            parse_mode="Markdown"
+            "💤 Du hast aktuell keine Wallets zum Anzeigen.<br><br>"
+            "Nutze <code>/add &lt;wallet&gt; &lt;tag&gt;</code>, um eine neue Wallet zu tracken.",
+            parse_mode="HTML"
         )
         return
 
@@ -32,8 +32,8 @@ async def list_wallets_cmd(message: types.Message):
 
             text = (
                 f"<code>{address}</code>\n"
-                f"🏷 Tag: <b>{tag}</b>\n"
-                f"📈 {wr_string} | {pnl_text}"
+                f"🏷️ <b>Tag:</b> <code>{tag}</code>\n"
+                f"📊 <b>{wr_string}</b> | {pnl_text}"
             )
 
             button = InlineKeyboardMarkup(inline_keyboard=[
