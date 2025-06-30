@@ -29,22 +29,21 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise ValueError("❌ BOT_TOKEN Umgebungsvariable fehlt!")
 
-bot = Bot(token=TOKEN, parse_mode="HTML")
-Bot.set_current(bot)  # 🛠️ Wichtig für aiogram 2.25.2 Kontexte
+bot: Bot = Bot(token=TOKEN, parse_mode="HTML")
+Bot.set_current(bot)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
 # ------------------------------------------------
 # Router Setup
 # ------------------------------------------------
-main_router(dp)  # 📡 Alle Commands & Button-Handler registrieren
+main_router(dp)
 
 # ------------------------------------------------
 # FastAPI Setup
 # ------------------------------------------------
 app = FastAPI()
 
-# CORS Middleware – für Render zwingend nötig
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -72,14 +71,22 @@ async def healthcheck():
 # Startup & Shutdown
 # ------------------------------------------------
 WEBHOOK_URL = get_webhook_url()
+if not WEBHOOK_URL:
+    logger.warning("⚠️ Keine WEBHOOK_URL gesetzt!")
 
 @app.on_event("startup")
 async def startup():
-    setup_cron_jobs(bot)
-    await bot.set_webhook(WEBHOOK_URL)
-    logger.info("✅ Webhook gesetzt & Cronjobs gestartet.")
+    try:
+        setup_cron_jobs(bot)
+        await bot.set_webhook(WEBHOOK_URL)
+        logger.info(f"✅ Webhook gesetzt auf: {WEBHOOK_URL}")
+    except Exception as e:
+        logger.exception("❌ Fehler beim Setzen des Webhooks oder Cron-Setup:")
 
 @app.on_event("shutdown")
 async def shutdown():
-    await bot.delete_webhook()
-    logger.info("🔒 Webhook entfernt.")
+    try:
+        await bot.delete_webhook()
+        logger.info("🔒 Webhook entfernt.")
+    except Exception as e:
+        logger.exception("❌ Fehler beim Entfernen des Webhooks:")
