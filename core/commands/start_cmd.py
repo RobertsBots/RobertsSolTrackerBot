@@ -1,5 +1,6 @@
 import logging
 from aiogram import types, Dispatcher, Bot
+from aiogram.utils.markdown import hbold
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 logger = logging.getLogger(__name__)
@@ -11,7 +12,7 @@ async def start_cmd(message: types.Message):
 
         user_id = message.from_user.id if message.from_user else "❓"
         username = message.from_user.username if message.from_user else "❓"
-        first_name = message.from_user.first_name if message.from_user else "User"
+        first_name = message.from_user.first_name if message.from_user else "Freund"
 
         logger.info(f"📩 /start empfangen von: {user_id} – {username}")
 
@@ -30,24 +31,27 @@ async def start_cmd(message: types.Message):
         ])
 
         await message.answer(
-            f"👋 Hey *{first_name}*!\n\n"
-            "🚀 Dieser Bot ist dein persönlicher Alpha-Scanner für Solana Wallets.\n"
-            "Er trackt live alle Käufe & Verkäufe deiner Favoriten – mit PnL, Winrate & SmartCoach Analyse.\n\n"
-            "📌 *Hier ist dein Command Center:*\n\n"
-            "• /add [wallet] [tag] – startet das Tracking für eine neue Wallet 🔍\n"
-            "• /rm – zeigt deine getrackten Wallets zur Entfernung 🗑️\n"
-            "• /list – Übersicht mit PnL, Winrate & SmartCoach Button 📋\n"
-            "• /profit [wallet] [+/-betrag] – trägt manuell Profit oder Verlust ein 💰\n"
-            "• /finder – aktiviert den SmartFinder für automatische Wallet-Entdeckung 🛰️\n"
-            "• /start – zeigt dieses Menü nochmal an 🔁\n\n"
-            "✨ Oder nutze einfach die Buttons unten:",
+            f"👋 Willkommen {hbold(first_name)} bei deinem persönlichen Solana-Tracker-Bot – der Bot, der deine Krypto-Zukunft verändern könnte.\n\n"
+            f"Ich bin {hbold('Robert')} – und glaub mir: Ich hab klein angefangen. Zwischen all den verwirrenden Infos, schrottigen Tools und Krypto-Gurus mit Kursen im A...berland musste ich einfach etwas Eigenes bauen. Etwas, das wirklich hilft.\n\n"
+            f"Nach vielen Nächten mit {hbold('Python')} & ein bisschen {hbold('KI-Zauber')} ist dieser Bot entstanden – für mich, aber jetzt auch für dich.\n\n"
+            f"Mit diesem Tool bekommst du {hbold('Live-Tracking, PnL, Winrate, SmartCoach-Analysen')} und jede Menge Insider-Power.\n\n"
+            f"{hbold('Premium-Modus?')} Ja, den gibt's auch – für alle, die noch mehr wollen: Developer-Zugriff, exklusive Features, Beta-Zugänge & kleine Extra-Goodies.\n\n"
+            f"🔥 Aktuell bist du mit der {hbold('Free-Version')} unterwegs – und selbst die hat mehr drauf als 99 % aller Bots da draußen.\n\n"
+            f"{hbold('Features & Commands:')}\n"
+            f"- /add WALLET TAG | ➕ {hbold('Fügt eine Wallet hinzu')} & startet das Live-Tracking\n"
+            f"- /rm | ➖ {hbold('Entfernt eine Wallet')} aus deiner Tracking-Liste\n"
+            f"- /list | 📃 {hbold('Zeigt alle getrackten Wallets')} mit PnL & Winrate\n"
+            f"- /profit WALLET +10 | 📈 {hbold('Trägt deinen Gewinn/Verlust ein')} (z. B. +10 oder -7)\n"
+            f"- /finder | 🔍 {hbold('SmartFinder-Modus')} – entdecke smarte Wallets zum Tracken & Coachen\n"
+            f"- /start | 🕹️ {hbold('Öffnet dieses Menü erneut')} bei Bedarf\n\n"
+            f"✨ Oder nutze einfach die Buttons unten:",
             reply_markup=keyboard,
             parse_mode="Markdown"
         )
 
     except Exception as e:
         logger.exception("❌ Fehler bei /start Befehl:")
-        await message.answer("⚠️ Ein Fehler ist aufgetreten beim Startbildschirm.")
+        await message.answer("⚠️ Ein Fehler ist beim Öffnen des Startmenüs aufgetreten.")
 
 # Registrierung für Dispatcher
 def register_start_cmd(dp: Dispatcher):
