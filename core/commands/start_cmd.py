@@ -8,12 +8,15 @@ async def start_cmd(message: types.Message):
     user_id = message.from_user.id
 
     # Vorherige Startnachricht löschen (falls vorhanden)
-    old_msg_id = await get_user_start_message_id(user_id)
-    if old_msg_id:
-        try:
-            await message.bot.delete_message(chat_id=message.chat.id, message_id=old_msg_id)
-        except Exception:
-            pass  # z. B. wenn Nachricht schon gelöscht wurde
+    try:
+        old_msg_id = await get_user_start_message_id(user_id)
+        if old_msg_id:
+            try:
+                await message.bot.delete_message(chat_id=message.chat.id, message_id=old_msg_id)
+            except Exception:
+                pass  # z. B. wenn Nachricht schon gelöscht wurde
+    except Exception as e:
+        print(f"[start_cmd] Fehler beim Löschen alter Nachricht: {e}")
 
     text = (
         "👋 *Willkommen Ro bei deinem persönlichen Solana\\-Tracker\\-Bot* – der Bot, der deine Krypto\\-Zukunft verändern könnte\\.\n\n"
@@ -33,10 +36,11 @@ async def start_cmd(message: types.Message):
         "✨ Oder nutze einfach die Buttons unten:"
     )
 
-    msg = await message.answer(text, parse_mode="MarkdownV2", reply_markup=start_buttons())
-
-    # Neue Startnachricht speichern
-    await save_user_start_message_id(user_id, msg.message_id)
+    try:
+        msg = await message.answer(text, parse_mode="MarkdownV2", reply_markup=start_buttons())
+        await save_user_start_message_id(user_id, msg.message_id)
+    except Exception as e:
+        print(f"[start_cmd] Fehler beim Senden oder Speichern: {e}")
 
 
 def register(dp: Dispatcher):
