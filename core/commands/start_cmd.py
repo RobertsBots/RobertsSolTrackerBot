@@ -46,7 +46,7 @@ async def start_cmd(message: types.Message):
             f"- /start | 🕹️ {hbold('Öffnet dieses Menü erneut')} bei Bedarf\n\n"
             f"✨ Oder nutze einfach die Buttons unten:",
             reply_markup=keyboard,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
     except Exception as e:
