@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 # Handler-Funktion für /start
 async def start_cmd(message: types.Message):
     try:
-        Bot.set_current(message.bot)  # 🛠️ Wichtig für aiogram 2.25.2
+        Bot.set_current(message.bot)
 
         user_id = message.from_user.id if message.from_user else "❓"
         username = message.from_user.username if message.from_user else "❓"
@@ -18,35 +18,36 @@ async def start_cmd(message: types.Message):
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [
-                InlineKeyboardButton(text="📈 Track Wallet", callback_data="add_wallet"),
-                InlineKeyboardButton(text="❌ Remove Wallet", callback_data="remove_wallet")
+                InlineKeyboardButton(text="📈 track wallet", callback_data="add_wallet"),
+                InlineKeyboardButton(text="❌ remove wallet", callback_data="remove_wallet")
             ],
             [
-                InlineKeyboardButton(text="📊 List Wallets", callback_data="list_wallets"),
-                InlineKeyboardButton(text="💰 Add Profit", callback_data="add_profit")
+                InlineKeyboardButton(text="📊 list wallets", callback_data="list_wallets"),
+                InlineKeyboardButton(text="💰 add profit", callback_data="add_profit")
             ],
             [
-                InlineKeyboardButton(text="🛰️ SmartFinder", callback_data="smartfinder_menu")
+                InlineKeyboardButton(text="🛰 smartfinder", callback_data="smartfinder_menu")
             ]
         ])
 
         await message.answer(
-            f"Willkommen, {hbold(first_name)}! 👋\n\n"
-            "Dieser Bot trackt automatisch Solana-Wallets und benachrichtigt dich über alle Käufe/Verkäufe.\n\n"
-            "Verfügbare Befehle:\n"
-            "/add [WALLET] [TAG] – Wallet hinzufügen\n"
-            "/rm – Wallet entfernen\n"
-            "/list – Alle Wallets anzeigen\n"
-            "/profit [WALLET] [+/-BETRAG] – Manuellen Profit setzen\n"
-            "/finder – SmartFinder Modus\n\n"
-            "Oder benutze die Buttons 👇",
+            f"👋 hey {hbold(first_name)}!\n\n"
+            "🚀 dieser bot ist dein persönlicher alpha-scanner für solana wallets.\n"
+            "er trackt live alle käufe & verkäufe deiner favoriten – mit pnl, winrate & smartcoach analyse. \n\n"
+            "📌 *hier ist dein command center:*\n\n"
+            "• /add [wallet] [tag] – fügt eine wallet hinzu & beginnt das tracking ⏱\n"
+            "• /rm – zeigt deine wallets zur entfernung 🗑️\n"
+            "• /list – zeigt alle getrackten wallets inkl. pnl & winrate 📋\n"
+            "• /profit [wallet] [+/-betrag] – trägt deinen realisierten profit ein 💰\n"
+            "• /finder – aktiviert den smartfinder für automatische wallet-entdeckung 🛰️\n\n"
+            "✨ oder nutze einfach die buttons unten:",
             reply_markup=keyboard,
-            parse_mode="HTML"
+            parse_mode="Markdown"
         )
 
     except Exception as e:
         logger.exception("❌ Fehler bei /start Befehl:")
-        await message.answer("⚠️ Ein Fehler ist aufgetreten beim Startbildschirm.")
+        await message.answer("⚠️ ein fehler ist aufgetreten beim startbildschirm.")
 
 # Registrierung für Dispatcher
 def register_start_cmd(dp: Dispatcher):
