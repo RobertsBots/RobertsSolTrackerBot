@@ -11,6 +11,7 @@ async def remove_wallet_cmd(message: types.Message):
     try:
         Bot.set_current(message.bot)
         user_id = message.from_user.id if message.from_user else None
+
         if not user_id:
             await message.answer("❗️Benutzer-ID fehlt.")
             return
@@ -18,13 +19,13 @@ async def remove_wallet_cmd(message: types.Message):
         wallets = await get_wallets(user_id)
 
         if not wallets:
-            await message.answer("❌ Keine Wallets gefunden.")
+            await message.answer("📭 Du hast keine Wallets hinzugefügt.")
             return
 
         keyboard = InlineKeyboardMarkup()
         for entry in wallets:
             tag = entry.get("tag", "❓")
-            wallet_addr = entry.get("wallet", "")
+            wallet_addr = entry.get("wallet") or entry.get("address") or None
             if not wallet_addr:
                 continue
             display = f"{tag} - {wallet_addr[:5]}...{wallet_addr[-4:]}"
@@ -35,13 +36,14 @@ async def remove_wallet_cmd(message: types.Message):
 
     except Exception as e:
         logger.exception("❌ Fehler bei /rm Befehl:")
-        await message.answer("⚠️ Ein Fehler ist aufgetreten beim Anzeigen der Wallets.")
+        await message.answer("⚠️ Ein Fehler ist aufgetreten beim Anzeigen deiner Wallets.")
 
 # Callback für Entfernen einer Wallet
 async def handle_rm_callback(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
         user_id = callback_query.from_user.id if callback_query.from_user else None
+
         if not user_id:
             await callback_query.answer("❗️Benutzer-ID fehlt.", show_alert=True)
             return
@@ -58,11 +60,11 @@ async def handle_rm_callback(callback_query: types.CallbackQuery):
             f"✅ Wallet `{wallet}` entfernt.",
             parse_mode="Markdown"
         )
-        logger.info(f"Wallet entfernt: {wallet} – User {user_id}")
+        logger.info(f"🗑 Wallet entfernt: {wallet} – User {user_id}")
 
     except Exception as e:
         logger.exception("❌ Fehler beim Entfernen der Wallet:")
-        await callback_query.answer("⚠️ Ein Fehler ist aufgetreten beim Entfernen.", show_alert=True)
+        await callback_query.answer("⚠️ Fehler beim Entfernen der Wallet.", show_alert=True)
 
 # Registrierung
 def register_rm_cmd(dp: Dispatcher):
