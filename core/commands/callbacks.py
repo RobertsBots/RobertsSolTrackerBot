@@ -8,66 +8,96 @@ logger = logging.getLogger(__name__)
 
 # 📈 Button: Add Wallet
 async def handle_add_wallet(callback_query: types.CallbackQuery):
-    Bot.set_current(callback_query.bot)
-    await callback_query.answer()
-    await callback_query.message.answer("📥 Bitte benutze den Befehl:\n`/add <WALLET> <TAG>`", parse_mode="Markdown")
+    try:
+        Bot.set_current(callback_query.bot)
+        await callback_query.answer()
+        await callback_query.message.answer("📥 Bitte benutze den Befehl:\n`/add <WALLET> <TAG>`", parse_mode="Markdown")
+    except Exception as e:
+        logger.exception("❌ Fehler bei Add Wallet Button:")
 
 # 🗑 Button: Remove Wallet
 async def handle_remove_wallet(callback_query: types.CallbackQuery):
-    Bot.set_current(callback_query.bot)
-    await callback_query.answer()
-    await callback_query.message.answer("🗑 Bitte benutze den Befehl:\n`/rm`", parse_mode="Markdown")
+    try:
+        Bot.set_current(callback_query.bot)
+        await callback_query.answer()
+        await callback_query.message.answer("🗑 Bitte benutze den Befehl:\n`/rm`", parse_mode="Markdown")
+    except Exception as e:
+        logger.exception("❌ Fehler bei Remove Wallet Button:")
 
 # 💼 Button: List Wallets
 async def handle_list_wallets(callback_query: types.CallbackQuery):
-    Bot.set_current(callback_query.bot)
-    await callback_query.answer()
-    await callback_query.message.answer("📊 Bitte benutze den Befehl:\n`/list`", parse_mode="Markdown")
+    try:
+        Bot.set_current(callback_query.bot)
+        await callback_query.answer()
+        await callback_query.message.answer("📊 Bitte benutze den Befehl:\n`/list`", parse_mode="Markdown")
+    except Exception as e:
+        logger.exception("❌ Fehler bei List Wallets Button:")
 
 # 💰 Button: Add Profit
 async def handle_add_profit(callback_query: types.CallbackQuery):
-    Bot.set_current(callback_query.bot)
-    await callback_query.answer()
-    await callback_query.message.answer("💰 Bitte benutze den Befehl:\n`/profit <WALLET> <+/-BETRAG>`", parse_mode="Markdown")
+    try:
+        Bot.set_current(callback_query.bot)
+        await callback_query.answer()
+        await callback_query.message.answer("💰 Bitte benutze den Befehl:\n`/profit <WALLET> <+/-BETRAG>`", parse_mode="Markdown")
+    except Exception as e:
+        logger.exception("❌ Fehler bei Add Profit Button:")
 
 # 🛰️ Button: SmartFinder
 async def handle_open_smart_finder(callback_query: types.CallbackQuery):
-    Bot.set_current(callback_query.bot)
-    await callback_query.answer()
-    await callback_query.message.edit_text(
-        "📡 <b>Smart Wallet Finder</b>\nWähle deinen Modus:",
-        reply_markup=get_smart_finder_menu(),
-        parse_mode="HTML"
-    )
+    try:
+        Bot.set_current(callback_query.bot)
+        await callback_query.answer()
+        await callback_query.message.edit_text(
+            "📡 <b>Smart Wallet Finder</b>\nWähle deinen Modus:",
+            reply_markup=get_smart_finder_menu(),
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logger.exception("❌ Fehler beim Öffnen des SmartFinder Menüs:")
 
 # 🔙 Button: Zurück zum Hauptmenü
 async def handle_back_to_main_menu(callback_query: types.CallbackQuery):
-    Bot.set_current(callback_query.bot)
-    await callback_query.answer()
-    await callback_query.message.edit_text(
-        "🏠 Hauptmenü – wähle eine Aktion:",
-        reply_markup=get_main_menu()
-    )
+    try:
+        Bot.set_current(callback_query.bot)
+        await callback_query.answer()
+        await callback_query.message.edit_text(
+            "🏠 Hauptmenü – wähle eine Aktion:",
+            reply_markup=get_main_menu()
+        )
+    except Exception as e:
+        logger.exception("❌ Fehler beim Zurückspringen zum Hauptmenü:")
 
 # 🌕/⚡️/🛑 Finder-Auswahl
 async def handle_finder_selection(callback_query: types.CallbackQuery):
-    Bot.set_current(callback_query.bot)
-    selection = callback_query.data.replace("finder_", "")
-    user_id = callback_query.from_user.id
+    try:
+        Bot.set_current(callback_query.bot)
+        await callback_query.answer()
 
-    await callback_query.answer()
+        selection = callback_query.data.replace("finder_", "")
+        user_id = callback_query.from_user.id if callback_query.from_user else None
 
-    if selection == "moonbags":
-        await set_finder_mode(user_id, "moonbags")
-        await callback_query.message.edit_text("✅ Finder aktiviert: 🌕 Moonbags", reply_markup=get_main_menu())
-    elif selection == "scalping":
-        await set_finder_mode(user_id, "scalping")
-        await callback_query.message.edit_text("✅ Finder aktiviert: ⚡️ Scalping Bags", reply_markup=get_main_menu())
-    elif selection == "off":
-        await set_finder_mode(user_id, "off")
-        await callback_query.message.edit_text("🛑 Finder deaktiviert.", reply_markup=get_main_menu())
+        if not user_id:
+            await callback_query.answer("❗️ Benutzer-ID fehlt.", show_alert=True)
+            return
 
-    await notify_user(user_id, f"🎯 Finder-Modus gesetzt: <b>{selection}</b>")
+        if selection == "moonbags":
+            await set_finder_mode(user_id, "moonbags")
+            await callback_query.message.edit_text("✅ Finder aktiviert: 🌕 Moonbags", reply_markup=get_main_menu())
+        elif selection == "scalping":
+            await set_finder_mode(user_id, "scalping")
+            await callback_query.message.edit_text("✅ Finder aktiviert: ⚡️ Scalping Bags", reply_markup=get_main_menu())
+        elif selection == "off":
+            await set_finder_mode(user_id, "off")
+            await callback_query.message.edit_text("🛑 Finder deaktiviert.", reply_markup=get_main_menu())
+        else:
+            await callback_query.answer("❗️ Ungültige Auswahl.", show_alert=True)
+            return
+
+        await notify_user(user_id, f"🎯 Finder-Modus gesetzt: <b>{selection}</b>")
+        logger.info(f"📡 Finder-Modus gesetzt: {selection} – User {user_id}")
+
+    except Exception as e:
+        logger.exception("❌ Fehler bei Finder-Auswahl:")
 
 # 🔁 Registrierung aller Button-Handler
 def register_callback_buttons(dp: Dispatcher):
