@@ -26,7 +26,9 @@ async def add_wallet(user_id: int, wallet: str, tag: str = "") -> bool:
             "user_id": user_id,
             "wallet": wallet,
             "tag": tag,
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.utcnow().isoformat(),
+            "last_tx_time": None,
+            "initial_sol_balance": None
         }).execute()
     )
     return True
@@ -113,3 +115,37 @@ async def get_finder_mode(user_id: int) -> str:
     if result.data and result.data[0].get("mode"):
         return result.data[0]["mode"]
     return "off"
+
+# ✅ NEU: Letzte Aktivität speichern
+async def update_last_tx_time(wallet: str):
+    now = datetime.utcnow().isoformat()
+    await asyncio.to_thread(
+        lambda: supabase.table("wallets").update({"last_tx_time": now}).eq("wallet", wallet).execute()
+    )
+
+# ✅ NEU: Letzte Aktivität holen
+async def get_last_tx_time(wallet: str):
+    result = await asyncio.to_thread(
+        lambda: supabase.table("wallets").select("last_tx_time").eq("wallet", wallet).execute()
+    )
+    if result.data and result.data[0].get("last_tx_time"):
+        return datetime.fromisoformat(result.data[0]["last_tx_time"])
+    return None
+
+# ✅ NEU: Aktuelle & initiale SOL-Balance abrufen
+async def get_wallet_sol_balance(wallet: str) -> tuple:
+    result = await asyncio.to_thread(
+        lambda: supabase.table("wallets").select("initial_sol_balance", "last_sol_balance").eq("wallet", wallet).execute()
+    )
+    if result.data:
+        initial = result.data[0].get("initial_sol_balance") or 0.0
+        current = result.data[0].get("last_sol_balance") or 0.0
+        return float(initial), float(current)
+    return 0.0, 0.0
+
+# ✅ NEU: Initiale oder aktuelle Balance setzen
+async def set_wallet_sol_balance(wallet: str, balance: float, set_initial=False):
+    column = "initial_sol_balance" if set_initial else "last_sol_balance"
+    await asyncio.to_thread(
+        lambda: supabase.table("wallets").update({column: balance}).eq("wallet", wallet).execute()
+    )
