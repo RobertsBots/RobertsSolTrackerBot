@@ -36,13 +36,13 @@ async def add_wallet_cmd(message: types.Message):
 
         if success:
             await message.answer(
-                f"✅ Wallet `{wallet}` mit Tag `{tag}` hinzugefügt.",
+                f"✅ Wallet `{wallet}` mit Tag `{tag}` hinzugefügt und wird nun getrackt.",
                 parse_mode="Markdown"
             )
             logger.info(f"📥 Wallet hinzugefügt: {wallet} (Tag: {tag}) – User {user_id}")
         else:
             await message.answer(
-                f"⚠️ Wallet `{wallet}` ist bereits vorhanden.",
+                f"⚠️ Wallet `{wallet}` ist bereits in deiner Trackliste.",
                 parse_mode="Markdown"
             )
 
@@ -50,6 +50,5 @@ async def add_wallet_cmd(message: types.Message):
         logger.exception("❌ Fehler bei /add:")
         await message.answer("❌ Ein unerwarteter Fehler ist aufgetreten.")
 
-# Registrierung für Dispatcher
 def register_add_cmd(dp: Dispatcher):
     dp.register_message_handler(add_wallet_cmd, commands=["add"])
