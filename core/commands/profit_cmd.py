@@ -9,7 +9,13 @@ logger = logging.getLogger(__name__)
 async def profit_cmd(message: types.Message):
     try:
         Bot.set_current(message.bot)
-        args = message.text.split()
+        user_id = message.from_user.id if message.from_user else None
+
+        if not user_id:
+            await message.answer("❗️Benutzer-ID fehlt.")
+            return
+
+        args = message.text.strip().split()
 
         if len(args) != 3:
             await message.answer(
@@ -35,8 +41,7 @@ async def profit_cmd(message: types.Message):
             f"{color} Profit für `{wallet}` aktualisiert: `{amount:+.2f} SOL`",
             parse_mode="Markdown"
         )
-        user_id = message.from_user.id if message.from_user else "unbekannt"
-        logger.info(f"Profit gesetzt: {wallet} → {amount} – User {user_id}")
+        logger.info(f"✅ Profit gesetzt: {wallet} → {amount} – User {user_id}")
 
     except Exception as e:
         logger.exception("❌ Fehler bei /profit:")
@@ -52,6 +57,7 @@ async def handle_profit_callback(callback_query: types.CallbackQuery):
         )
     except Exception as e:
         logger.exception("❌ Fehler beim Bearbeiten von Profit-Callback:")
+        await callback_query.answer("⚠️ Fehler beim Anzeigen der Profit-Eingabe.", show_alert=True)
 
 # Registrierung
 def register_profit_cmd(dp: Dispatcher):
