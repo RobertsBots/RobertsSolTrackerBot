@@ -77,7 +77,6 @@ WEBHOOK_URL = get_webhook_url()
 async def startup():
     setup_cron_jobs(bot)
     await bot.set_webhook(WEBHOOK_URL)
-    setup_cron_jobs(bot)
     logger.info("✅ Webhook gesetzt & Cronjobs gestartet.")
 
 @app.on_event("shutdown")
