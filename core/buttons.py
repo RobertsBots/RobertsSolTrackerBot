@@ -70,3 +70,7 @@ def list_wallets_button():
     return InlineKeyboardMarkup().add(
         InlineKeyboardButton("📋 Getrackte Wallets", callback_data="start:list_wallets")
     )
+
+
+# Alias für Kompatibilität mit bisherigen Imports
+start_buttons = start_menu_keyboard
