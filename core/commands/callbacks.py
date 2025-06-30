@@ -3,6 +3,7 @@ from aiogram import types, Dispatcher, Bot
 from core.buttons import get_main_menu, get_smart_finder_menu
 from core.database import set_finder_mode
 from core.alerts import notify_user
+from core.helpers import send_smartcoach_reply
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +12,10 @@ async def handle_add_wallet(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
         await callback_query.answer()
-        await callback_query.message.answer("📥 Bitte benutze den Befehl:\n`/add <WALLET> <TAG>`", parse_mode="Markdown")
+        await callback_query.message.answer(
+            "📥 Bitte benutze den Befehl:\n`/add <WALLET> <TAG>`",
+            parse_mode="Markdown"
+        )
     except Exception as e:
         logger.exception("❌ Fehler bei Add Wallet Button:")
 
@@ -20,7 +24,10 @@ async def handle_remove_wallet(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
         await callback_query.answer()
-        await callback_query.message.answer("🗑 Bitte benutze den Befehl:\n`/rm`", parse_mode="Markdown")
+        await callback_query.message.answer(
+            "🗑 Bitte benutze den Befehl:\n`/rm`",
+            parse_mode="Markdown"
+        )
     except Exception as e:
         logger.exception("❌ Fehler bei Remove Wallet Button:")
 
@@ -29,7 +36,10 @@ async def handle_list_wallets(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
         await callback_query.answer()
-        await callback_query.message.answer("📊 Bitte benutze den Befehl:\n`/list`", parse_mode="Markdown")
+        await callback_query.message.answer(
+            "📊 Bitte benutze den Befehl:\n`/list`",
+            parse_mode="Markdown"
+        )
     except Exception as e:
         logger.exception("❌ Fehler bei List Wallets Button:")
 
@@ -38,11 +48,14 @@ async def handle_add_profit(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
         await callback_query.answer()
-        await callback_query.message.answer("💰 Bitte benutze den Befehl:\n`/profit <WALLET> <+/-BETRAG>`", parse_mode="Markdown")
+        await callback_query.message.answer(
+            "💰 Bitte benutze den Befehl:\n`/profit <WALLET> <+/-BETRAG>`",
+            parse_mode="Markdown"
+        )
     except Exception as e:
         logger.exception("❌ Fehler bei Add Profit Button:")
 
-# 🛰️ Button: SmartFinder
+# 🛰️ Button: SmartFinder öffnen
 async def handle_open_smart_finder(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
@@ -55,7 +68,7 @@ async def handle_open_smart_finder(callback_query: types.CallbackQuery):
     except Exception as e:
         logger.exception("❌ Fehler beim Öffnen des SmartFinder Menüs:")
 
-# 🔙 Button: Zurück zum Hauptmenü
+# 🔙 Zurück zum Hauptmenü
 async def handle_back_to_main_menu(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
@@ -67,7 +80,7 @@ async def handle_back_to_main_menu(callback_query: types.CallbackQuery):
     except Exception as e:
         logger.exception("❌ Fehler beim Zurückspringen zum Hauptmenü:")
 
-# 🌕/⚡️/🛑 Finder-Auswahl
+# 🌕/⚡️/🛑 Finder-Modus wählen
 async def handle_finder_selection(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
@@ -99,7 +112,15 @@ async def handle_finder_selection(callback_query: types.CallbackQuery):
     except Exception as e:
         logger.exception("❌ Fehler bei Finder-Auswahl:")
 
-# 🔁 Registrierung aller Button-Handler
+# 🧠 SmartCoach Button
+async def handle_smartcoach_reply(callback_query: types.CallbackQuery):
+    try:
+        Bot.set_current(callback_query.bot)
+        await send_smartcoach_reply(callback_query)
+    except Exception as e:
+        logger.exception("❌ Fehler bei SmartCoach Analyse:")
+
+# 🔁 Registrierung aller Buttons
 def register_callback_buttons(dp: Dispatcher):
     dp.register_callback_query_handler(handle_add_wallet, lambda c: c.data == "add_wallet")
     dp.register_callback_query_handler(handle_remove_wallet, lambda c: c.data == "remove_wallet")
@@ -108,3 +129,4 @@ def register_callback_buttons(dp: Dispatcher):
     dp.register_callback_query_handler(handle_open_smart_finder, lambda c: c.data in ["smartfinder_menu", "smart_finder"])
     dp.register_callback_query_handler(handle_back_to_main_menu, lambda c: c.data == "main_menu")
     dp.register_callback_query_handler(handle_finder_selection, lambda c: c.data.startswith("finder_"))
+    dp.register_callback_query_handler(handle_smartcoach_reply, lambda c: c.data.startswith("smartcoach_reply:"))
