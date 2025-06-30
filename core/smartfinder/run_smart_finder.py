@@ -18,10 +18,10 @@ headers = {
 
 async def run_smart_wallet_finder(bot: Bot):
     if not DUNE_API_KEY:
-        logger.error("❌ DUNE_API_KEY fehlt in Umgebungsvariablen.")
+        logger.error("❌ DUNE_API_KEY fehlt in den Umgebungsvariablen.")
         return
     if not TELEGRAM_CHANNEL_ID:
-        logger.error("❌ CHANNEL_ID fehlt in Umgebungsvariablen.")
+        logger.error("❌ CHANNEL_ID fehlt in den Umgebungsvariablen.")
         return
 
     url = f"https://api.dune.com/api/v1/query/{DUNE_QUERY_ID}/results"
@@ -35,42 +35,47 @@ async def run_smart_wallet_finder(bot: Bot):
         rows = data.get("result", {}).get("rows", [])
 
         if not rows:
-            logger.warning("⚠️ Keine Smart Wallets in der Dune-Antwort gefunden.")
+            logger.warning("⚠️ Dune API hat keine Wallets zurückgegeben.")
             return
 
         for row in rows:
-            winrate = row.get("winrate", 0)
-            roi = row.get("roi", 0)
+            try:
+                winrate = float(row.get("winrate", 0))
+                roi = float(row.get("roi", 0))
 
-            if winrate >= 70 and roi >= 5:
-                wallet_address = row.get("wallet", "")
-                if not wallet_address:
-                    continue
+                if winrate >= 70 and roi >= 5:
+                    wallet_address = row.get("wallet", "")
+                    if not wallet_address:
+                        continue
 
-                wallet_data = {
-                    "address": wallet_address,
-                    "winrate": winrate,
-                    "roi": roi,
-                    "pnl": row.get("realized_pnl", 0),
-                    "account_age": row.get("wallet_age_days", "?"),
-                    "sol_balance": row.get("sol_balance", 0)
-                }
+                    wallet_data = {
+                        "address": wallet_address,
+                        "winrate": winrate,
+                        "roi": roi,
+                        "pnl": float(row.get("realized_pnl", 0)),
+                        "account_age": int(row.get("wallet_age_days", 0)),
+                        "sol_balance": float(row.get("sol_balance", 0))
+                    }
 
-                added = await add_wallet(user_id=0, wallet=wallet_data["address"], tag="🚀 AutoDetected")
+                    added = await add_wallet(user_id=0, wallet=wallet_data["address"], tag="🚀 AutoDetected")
 
-                if added:
-                    await post_wallet_detection_message(
-                        bot=bot,
-                        channel_id=TELEGRAM_CHANNEL_ID,
-                        wallet=wallet_data
-                    )
-                    logger.info(f"✅ Neue Wallet automatisch hinzugefügt: {wallet_address}")
-                else:
-                    logger.info(f"⚠️ Wallet bereits bekannt: {wallet_address}")
+                    if added:
+                        await post_wallet_detection_message(
+                            bot=bot,
+                            channel_id=TELEGRAM_CHANNEL_ID,
+                            wallet=wallet_data
+                        )
+                        logger.info(f"✅ Neue Wallet automatisch hinzugefügt: {wallet_address}")
+                    else:
+                        logger.info(f"🔁 Wallet bereits vorhanden: {wallet_address}")
+
+            except Exception as row_err:
+                logger.warning(f"⚠️ Fehler beim Verarbeiten einer Wallet-Zeile: {row_err}")
+                continue
 
     except httpx.RequestError as e:
-        logger.exception(f"🌐 Verbindungsfehler bei Dune API: {e}")
+        logger.exception(f"🌐 Verbindungsfehler bei der Dune API: {e}")
     except httpx.HTTPStatusError as e:
-        logger.exception(f"❌ Fehlerhafte Antwort von Dune API: {e.response.status_code}")
+        logger.exception(f"❌ Fehlerhafte HTTP-Antwort: {e.response.status_code}")
     except Exception as e:
-        logger.exception(f"❌ Unerwarteter Fehler beim Smart Wallet Finder: {e}")
+        logger.exception(f"❌ Unerwarteter Fehler im Smart Wallet Finder: {e}")
