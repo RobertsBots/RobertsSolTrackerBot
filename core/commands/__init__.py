@@ -1,7 +1,7 @@
 from aiogram import Dispatcher
 
 # ✅ Einzelrouter pro Kommando
-from .start_cmd import register_start_cmd
+from .start_cmd import register as register_start_cmd
 from .add_cmd import register_add_cmd
 from .rm_cmd import register_rm_cmd
 from .list_cmd import register_list_cmd
