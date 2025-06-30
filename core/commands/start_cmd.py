@@ -1,6 +1,5 @@
 from aiogram import types
 from aiogram.dispatcher import Dispatcher
-from core.buttons import start_buttons
 from core.database import get_user_start_message_id, save_user_start_message_id
 
 async def start_cmd(message: types.Message):
