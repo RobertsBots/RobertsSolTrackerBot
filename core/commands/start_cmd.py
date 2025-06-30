@@ -1,58 +1,53 @@
-import logging
-from aiogram import types, Dispatcher, Bot
-from aiogram.utils.markdown import hbold
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram import types
+from aiogram.dispatcher import FSMContext
+from aiogram.types import ParseMode
+from aiogram.dispatcher.filters import Command
 
-logger = logging.getLogger(__name__)
+from core.buttons import get_main_keyboard
+from core.database import get_user_start_message_id, save_user_start_message_id
+from core import dp
 
-# Handler-Funktion für /start
-async def start_cmd(message: types.Message):
+
+@dp.message_handler(Command("start"))
+async def start_cmd(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+
     try:
-        Bot.set_current(message.bot)
+        # Alte Startnachricht löschen (falls vorhanden)
+        old_msg_id = await get_user_start_message_id(user_id)
+        if old_msg_id:
+            try:
+                await message.bot.delete_message(chat_id=message.chat.id, message_id=old_msg_id)
+            except Exception:
+                pass
 
-        user_id = message.from_user.id if message.from_user else "❓"
-        username = message.from_user.username if message.from_user else "❓"
-        first_name = message.from_user.first_name if message.from_user else "Freund"
-
-        logger.info(f"📩 /start empfangen von: {user_id} – {username}")
-
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(text="📈 Track Wallet", callback_data="add_wallet"),
-                InlineKeyboardButton(text="❌ Remove Wallet", callback_data="remove_wallet")
-            ],
-            [
-                InlineKeyboardButton(text="📊 List Wallets", callback_data="list_wallets"),
-                InlineKeyboardButton(text="💰 Add Profit", callback_data="add_profit")
-            ],
-            [
-                InlineKeyboardButton(text="🛰 SmartFinder", callback_data="smartfinder_menu")
-            ]
-        ])
-
-        await message.answer(
-            f"👋 Willkommen {hbold(first_name)} bei deinem persönlichen Solana-Tracker-Bot – der Bot, der deine Krypto-Zukunft verändern könnte.\n\n"
-            f"Ich bin {hbold('Robert')} – und glaub mir: Ich hab klein angefangen. Zwischen all den verwirrenden Infos, schrottigen Tools und Krypto-Gurus mit Kursen im A...berland musste ich einfach etwas Eigenes bauen. Etwas, das wirklich hilft.\n\n"
-            f"Nach vielen Nächten mit {hbold('Python')} & ein bisschen {hbold('KI-Zauber')} ist dieser Bot entstanden – für mich, aber jetzt auch für dich.\n\n"
-            f"Mit diesem Tool bekommst du {hbold('Live-Tracking, PnL, Winrate, SmartCoach-Analysen')} und jede Menge Insider-Power.\n\n"
-            f"{hbold('Premium-Modus?')} Ja, den gibt's auch – für alle, die noch mehr wollen: Developer-Zugriff, exklusive Features, Beta-Zugänge & kleine Extra-Goodies.\n\n"
-            f"🔥 Aktuell bist du mit der {hbold('Free-Version')} unterwegs – und selbst die hat mehr drauf als 99 % aller Bots da draußen.\n\n"
-            f"{hbold('Features & Commands:')}\n"
-            f"- /add WALLET TAG | ➕ {hbold('Fügt eine Wallet hinzu')} & startet das Live-Tracking\n"
-            f"- /rm | ➖ {hbold('Entfernt eine Wallet')} aus deiner Tracking-Liste\n"
-            f"- /list | 📃 {hbold('Zeigt alle getrackten Wallets')} mit PnL & Winrate\n"
-            f"- /profit WALLET +10 | 📈 {hbold('Trägt deinen Gewinn/Verlust ein')} (z. B. +10 oder -7)\n"
-            f"- /finder | 🔍 {hbold('SmartFinder-Modus')} – entdecke smarte Wallets zum Tracken & Coachen\n"
-            f"- /start | 🕹️ {hbold('Öffnet dieses Menü erneut')} bei Bedarf\n\n"
-            f"✨ Oder nutze einfach die Buttons unten:",
-            reply_markup=keyboard,
-            parse_mode="HTML"
+        # Neue Startnachricht
+        text = (
+            f"👋 Willkommen <b>Ro</b> bei deinem persönlichen <b>Solana-Tracker-Bot</b> – der Bot, der deine Krypto-Zukunft verändern könnte.\n\n"
+            f"Ich bin <b>Robert</b> – und glaub mir: Ich hab klein angefangen. Zwischen all den verwirrenden Infos, "
+            f"schrottigen Tools und Krypto-Gurus mit Kursen im A...berland musste ich einfach etwas Eigenes bauen. "
+            f"Etwas, das wirklich hilft.\n\n"
+            f"Nach vielen Nächten mit Python & ein bisschen KI-Zauber ist dieser Bot entstanden – "
+            f"für <b>mich</b>, aber jetzt auch für <b>dich</b>.\n\n"
+            f"Mit diesem Tool bekommst du <b>Live-Tracking</b>, <b>PnL</b>, <b>Winrate</b>, <b>SmartCoach-Analysen</b> "
+            f"und jede Menge <b>Insider-Power</b>.\n\n"
+            f"<b>Premium-Modus?</b> Ja, den gibt's auch – für alle, die noch mehr wollen: "
+            f"<b>Developer-Zugriff</b>, <b>exklusive Features</b>, <b>Beta-Zugänge</b> & kleine <b>Extra-Goodies</b>.\n\n"
+            f"🔥 Aktuell bist du mit der <b>Free-Version</b> unterwegs – und selbst die hat mehr drauf als 99 % aller Bots da draußen.\n\n"
+            f"<b>Features & Commands:</b>\n"
+            f"- /add WALLET TAG | ➕ <b>Fügt eine Wallet hinzu</b> & startet das Live-Tracking\n"
+            f"- /rm | ➖ <b>Entfernt eine Wallet</b> aus deiner Tracking-Liste\n"
+            f"- /list | 📃 <b>Zeigt alle getrackten Wallets</b> mit PnL & Winrate\n"
+            f"- /profit WALLET +10 | 📈 <b>Trägt deinen Gewinn/Verlust</b> ein (z. B. +10 oder -7)\n"
+            f"- /finder | 🔍 <b>SmartFinder-Modus</b> – entdecke smarte Wallets zum Tracken & Coachen\n"
+            f"- /start | 🕹️ <b>Öffnet dieses Menü erneut</b> bei Bedarf\n\n"
+            f"✨ Oder nutze einfach die Buttons unten:"
         )
 
-    except Exception as e:
-        logger.exception("❌ Fehler bei /start Befehl:")
-        await message.answer("⚠️ Ein Fehler ist beim Öffnen des Startmenüs aufgetreten.")
+        sent = await message.answer(text, reply_markup=get_main_keyboard(), parse_mode=ParseMode.HTML)
 
-# Registrierung für Dispatcher
-def register_start_cmd(dp: Dispatcher):
-    dp.register_message_handler(start_cmd, commands=["start"])
+        # Neue Startnachricht-ID speichern
+        await save_user_start_message_id(user_id, sent.message_id)
+
+    except Exception as e:
+        await message.reply(f"❌ Fehler bei /start: {e}")
