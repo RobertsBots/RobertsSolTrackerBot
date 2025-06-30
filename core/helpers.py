@@ -8,16 +8,21 @@ logger = logging.getLogger(__name__)
 async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict):
     try:
         address = wallet.get("address", "N/A")
-        winrate = float(wallet.get("winrate", 0))
-        roi = float(wallet.get("roi", 0))
-        pnl = float(wallet.get("pnl", 0))
-        age = int(wallet.get("account_age", 0))
-        sol = float(wallet.get("sol_balance", 0))
+        if not address or len(address) < 8:
+            logger.warning("⚠️ Ungültige oder leere Wallet-Adresse erhalten.")
+            return
+
+        winrate = float(wallet.get("winrate") or 0)
+        roi = float(wallet.get("roi") or 0)
+        pnl = float(wallet.get("pnl") or 0)
+        age = int(wallet.get("account_age") or 0)
+        sol = float(wallet.get("sol_balance") or 0)
         tag = "🚀 AutoDetected"
 
         # Prüfen, ob Wallet neu ist
         was_added = await add_wallet(user_id=0, wallet=address, tag=tag)
         if not was_added:
+            logger.info(f"🔁 Wallet {address} wurde bereits hinzugefügt.")
             return
 
         message = f"""
@@ -46,5 +51,6 @@ async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict)
             parse_mode="HTML"
         )
         logger.info(f"📬 Wallet-Detection gesendet für {address}")
+
     except Exception as e:
         logger.error(f"❌ Fehler beim Posten der Wallet Detection Nachricht: {e}")
