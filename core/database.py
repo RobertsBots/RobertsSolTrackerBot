@@ -150,8 +150,8 @@ async def set_wallet_sol_balance(wallet: str, balance: float, set_initial=False)
         lambda: supabase.table("wallets").update({column: balance}).eq("wallet", wallet).execute()
     )
 
-# ✅ NEU: Start-Message-ID speichern für Inline-Aktualisierung
-async def set_start_message_id(user_id: int, message_id: int):
+# ✅ Start-Message-ID async speichern
+async def save_user_start_message_id(user_id: int, message_id: int):
     result = await asyncio.to_thread(
         lambda: supabase.table("start_messages").select("*").eq("user_id", user_id).execute()
     )
@@ -167,10 +167,11 @@ async def set_start_message_id(user_id: int, message_id: int):
             }).execute()
         )
 
-async def get_start_message_id(user_id: int) -> int:
+# ✅ Start-Message-ID async abrufen
+async def get_user_start_message_id(user_id: int) -> int:
     result = await asyncio.to_thread(
         lambda: supabase.table("start_messages").select("message_id").eq("user_id", user_id).execute()
     )
     if result.data and result.data[0].get("message_id"):
         return int(result.data[0]["message_id"])
-    return None
+    return 0
