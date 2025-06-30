@@ -1,14 +1,22 @@
-# 🧠 SmartCoach Button
-from aiogram import types
+# core/commands/callbacks.py
+
+import logging
+from aiogram import types, Bot
 from core.smartcoach import smartcoach_reply
 from core.database import get_wallets
+
+logger = logging.getLogger(__name__)
 
 async def handle_smartcoach_reply(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
         await callback_query.answer()
 
-        address = callback_query.data.split(":", 1)[1]
+        parts = callback_query.data.split(":", 4)
+        if len(parts) < 5:
+            await callback_query.message.answer("⚠️ Ungültige Callback-Daten.")
+            return
+        address = parts[4]
         user_id = callback_query.from_user.id
 
         wallets = await get_wallets(user_id)
@@ -30,3 +38,6 @@ async def handle_smartcoach_reply(callback_query: types.CallbackQuery):
     except Exception as e:
         logger.exception("❌ Fehler bei SmartCoach Analyse:")
         await callback_query.message.answer("⚠️ Fehler bei SmartCoach-Analyse.")
+
+def register_callback_buttons(dp):
+    dp.register_callback_query_handler(handle_smartcoach_reply, lambda c: c.data.startswith("smartcoach_reply:"))
