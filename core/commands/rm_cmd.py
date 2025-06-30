@@ -19,7 +19,7 @@ async def remove_wallet_cmd(message: types.Message):
         wallets = await get_wallets(user_id)
 
         if not wallets:
-            await message.answer("📭 Du hast keine Wallets hinzugefügt.")
+            await message.answer("💤 Du hast aktuell keine Wallets zum Entfernen.")
             return
 
         keyboard = InlineKeyboardMarkup()
@@ -57,7 +57,7 @@ async def handle_rm_callback(callback_query: types.CallbackQuery):
         await remove_wallet(user_id, wallet)
 
         await callback_query.message.edit_text(
-            f"✅ Wallet `{wallet}` entfernt.",
+            f"❌ Wallet `{wallet}` wurde erfolgreich entfernt.",
             parse_mode="Markdown"
         )
         logger.info(f"🗑 Wallet entfernt: {wallet} – User {user_id}")
@@ -66,7 +66,6 @@ async def handle_rm_callback(callback_query: types.CallbackQuery):
         logger.exception("❌ Fehler beim Entfernen der Wallet:")
         await callback_query.answer("⚠️ Fehler beim Entfernen der Wallet.", show_alert=True)
 
-# Registrierung
 def register_rm_cmd(dp: Dispatcher):
     dp.register_message_handler(remove_wallet_cmd, commands=["rm"])
     dp.register_callback_query_handler(handle_rm_callback, lambda c: c.data and c.data.startswith("rm_"))
