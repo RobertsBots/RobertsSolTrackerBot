@@ -1,6 +1,6 @@
 from aiogram import Dispatcher
 
-# ✅ Handler für Telegram-Kommandos
+# ✅ Einzelrouter pro Kommando
 from .start_cmd import register_start_cmd
 from .add_cmd import register_add_cmd
 from .rm_cmd import register_rm_cmd
@@ -8,7 +8,7 @@ from .list_cmd import register_list_cmd
 from .profit_cmd import register_profit_cmd
 from .finder_cmd import register_finder_cmd
 
-# ✅ Button-Callback-Handler
+# ✅ Callback-Handler für Buttons
 from .callbacks import register_callback_buttons
 
 # 🔁 Zentraler Router – wird in main.py aufgerufen
