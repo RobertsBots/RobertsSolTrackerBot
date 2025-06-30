@@ -1,4 +1,5 @@
 # 🧠 SmartCoach Button
+from aiogram import types
 from core.smartcoach import smartcoach_reply
 from core.database import get_wallets
 
