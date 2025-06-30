@@ -84,6 +84,21 @@ def get_webhook_url() -> str:
         raise ValueError("❌ WEBHOOK_URL, RENDER_EXTERNAL_URL oder RAILWAY_STATIC_URL ist nicht gesetzt.")
     return base_url.rstrip("/") + "/webhook"
 
+# 💡 Neue Hilfsfunktion: Mint → Tokenname
+async def get_token_name(mint: str) -> str:
+    try:
+        url = f"https://public-api.birdeye.so/public/token/{mint}"
+        headers = {"x-chain": "solana"}
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("data", {}).get("name") or mint[:4] + "..."
+    except Exception as e:
+        logger.warning(f"⚠️ Fehler beim Auflösen des Token-Namens für {mint}: {e}")
+        return mint[:4] + "..."
+
+# 🔁 Optional: Legacy Funktion behalten (SmartFinder)
 async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict):
     try:
         address = wallet.get("address", "N/A")
