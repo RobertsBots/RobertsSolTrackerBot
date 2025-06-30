@@ -29,15 +29,15 @@ async def finder_cmd(message: types.Message):
         ])
 
         await message.answer(
-            f"🔍 *SmartFinder aktivieren*\n\n"
+            f"<b>🔍 SmartFinder aktivieren</b>\n\n"
             "Mit dem SmartFinder entdeckt dein Bot automatisch 🔥 Wallets mit hoher Winrate & solidem ROI – alle 30 Minuten.\n\n"
-            "*Aktueller Modus:* `{current_mode}`\n\n"
-            "🧠 *Wähle deinen Scan-Modus:*\n"
-            "• 🌕 *Moonbags* → fokussiert auf starke Wallets mit längerem Hold & hohem Gewinnpotential\n"
-            "• ⚡️ *Scalping Bags* → erkennt schnelle Trader mit hohen Intraday-Moves\n\n"
+            f"<b>Aktueller Modus:</b> <code>{current_mode}</code>\n\n"
+            "<b>🧠 Wähle deinen Scan-Modus:</b>\n"
+            "• 🌕 <b>Moonbags</b> → fokussiert auf starke Wallets mit längerem Hold & hohem Gewinnpotential\n"
+            "• ⚡️ <b>Scalping Bags</b> → erkennt schnelle Trader mit hohen Intraday-Moves\n\n"
             "Du kannst den Finder jederzeit deaktivieren.",
             reply_markup=keyboard,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
     except Exception as e:
@@ -63,29 +63,29 @@ async def handle_finder_callback(callback_query: types.CallbackQuery):
         if mode == "moon":
             await set_finder_mode(user_id, "moon")
             await callback_query.message.edit_text(
-                "🌕 *Moonbag-Modus aktiviert!*\n\n"
+                "🌕 <b>Moonbag-Modus aktiviert!</b>\n\n"
                 "Der SmartFinder wird jetzt automatisch Wallets posten, die langfristige Gewinne & hohe Winrates zeigen.",
-                parse_mode="Markdown"
+                parse_mode="HTML"
             )
         elif mode == "scalp":
             await set_finder_mode(user_id, "scalp")
             await callback_query.message.edit_text(
-                "⚡️ *Scalping-Modus aktiviert!*\n\n"
+                "⚡️ <b>Scalping-Modus aktiviert!</b>\n\n"
                 "Jetzt scannt der Bot nach schnellen Wallets mit explosiven Trades & scalptauglichem ROI.",
-                parse_mode="Markdown"
+                parse_mode="HTML"
             )
         elif mode == "off":
             await set_finder_mode(user_id, "off")
             await callback_query.message.edit_text(
-                "❌ *SmartFinder deaktiviert.*\n\n"
+                "❌ <b>SmartFinder deaktiviert.</b>\n\n"
                 "Es werden keine neuen Wallets mehr automatisch erkannt oder gepostet.",
-                parse_mode="Markdown"
+                parse_mode="HTML"
             )
         else:
             await callback_query.answer("❗️Unbekannter Modus.", show_alert=True)
             return
 
-        await notify_user(user_id, f"✅ SmartFinder-Modus: `{mode}`")
+        await notify_user(user_id, f"✅ SmartFinder-Modus: <code>{mode}</code>")
         logger.info(f"Finder-Modus gesetzt auf {mode.upper()} – User {user_id}")
 
     except Exception as e:
