@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 # Handler-Funktion für /add
 async def add_wallet_cmd(message: types.Message):
     try:
-        Bot.set_current(message.bot)  # 🔧 Wichtig für aiogram 2.25.2
+        Bot.set_current(message.bot)
         args = message.text.split()
 
         if len(args) != 3:
@@ -17,7 +17,8 @@ async def add_wallet_cmd(message: types.Message):
             )
             return
 
-        wallet, tag = args[1].strip(), args[2].strip()
+        wallet = args[1].strip()
+        tag = args[2].strip()
 
         if not wallet or not tag:
             await message.answer(
@@ -38,7 +39,7 @@ async def add_wallet_cmd(message: types.Message):
                 f"✅ Wallet `{wallet}` mit Tag `{tag}` hinzugefügt.",
                 parse_mode="Markdown"
             )
-            logger.info(f"Wallet hinzugefügt: {wallet} (Tag: {tag}) – User {user_id}")
+            logger.info(f"📥 Wallet hinzugefügt: {wallet} (Tag: {tag}) – User {user_id}")
         else:
             await message.answer(
                 f"⚠️ Wallet `{wallet}` ist bereits vorhanden.",
