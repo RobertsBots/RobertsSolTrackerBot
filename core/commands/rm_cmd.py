@@ -13,13 +13,13 @@ async def remove_wallet_cmd(message: types.Message):
         user_id = message.from_user.id if message.from_user else None
 
         if not user_id:
-            await message.answer("❗️Benutzer-ID fehlt.")
+            await message.answer("❗️ Benutzer-ID fehlt.")
             return
 
         wallets = await get_wallets(user_id)
 
         if not wallets:
-            await message.answer("💤 Du hast aktuell keine Wallets zum Entfernen.")
+            await message.answer("💤 Du hast aktuell keine Wallets zum Entfernen.", parse_mode="HTML")
             return
 
         keyboard = InlineKeyboardMarkup()
@@ -32,11 +32,15 @@ async def remove_wallet_cmd(message: types.Message):
             callback_data = f"rm_{wallet_addr}"
             keyboard.add(InlineKeyboardButton(text=display, callback_data=callback_data))
 
-        await message.answer("🗑 Wähle eine Wallet zum Entfernen:", reply_markup=keyboard)
+        await message.answer(
+            "🗑 <b>Wähle eine Wallet zum Entfernen:</b>",
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
 
     except Exception as e:
         logger.exception("❌ Fehler bei /rm Befehl:")
-        await message.answer("⚠️ Ein Fehler ist aufgetreten beim Anzeigen deiner Wallets.")
+        await message.answer("⚠️ Ein Fehler ist aufgetreten beim Anzeigen deiner Wallets.", parse_mode="HTML")
 
 # Callback für Entfernen einer Wallet
 async def handle_rm_callback(callback_query: types.CallbackQuery):
@@ -45,20 +49,20 @@ async def handle_rm_callback(callback_query: types.CallbackQuery):
         user_id = callback_query.from_user.id if callback_query.from_user else None
 
         if not user_id:
-            await callback_query.answer("❗️Benutzer-ID fehlt.", show_alert=True)
+            await callback_query.answer("❗️ Benutzer-ID fehlt.", show_alert=True)
             return
 
         data = callback_query.data
         if not data or not data.startswith("rm_"):
-            await callback_query.answer("❗️Ungültige Auswahl.", show_alert=True)
+            await callback_query.answer("❗️ Ungültige Auswahl.", show_alert=True)
             return
 
         wallet = data.replace("rm_", "")
         await remove_wallet(user_id, wallet)
 
         await callback_query.message.edit_text(
-            f"❌ Wallet `{wallet}` wurde erfolgreich entfernt.",
-            parse_mode="Markdown"
+            f"❌ Wallet <code>{wallet}</code> wurde erfolgreich entfernt.",
+            parse_mode="HTML"
         )
         logger.info(f"🗑 Wallet entfernt: {wallet} – User {user_id}")
 
