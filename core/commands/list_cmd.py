@@ -13,7 +13,11 @@ async def list_wallets_cmd(message: types.Message):
     wallets = await get_wallets(user_id=user_id)
 
     if not wallets:
-        await message.answer("💤 Du hast aktuell keine Wallets zum Anzeigen.\n\nNutze `/add <wallet> <tag>`, um eine neue Wallet zu tracken.", parse_mode="Markdown")
+        await message.answer(
+            "💤 Du hast aktuell keine Wallets zum Anzeigen.\n\n"
+            "Nutze `/add <wallet> <tag>`, um eine neue Wallet zu tracken.",
+            parse_mode="Markdown"
+        )
         return
 
     await message.answer("📄 <b>Deine getrackten Wallets:</b>", parse_mode="HTML")
@@ -23,20 +27,19 @@ async def list_wallets_cmd(message: types.Message):
             address = wallet.get("address", "Unbekannt")
             tag = wallet.get("tag", "-")
             profit = wallet.get("profit", 0)
-            wr = await calculate_wallet_wr(user_id, address)  # bereits gerundet
+            wr_string = await calculate_wallet_wr(user_id, address)
             pnl_text = format_pnl(profit)
 
             text = (
                 f"<code>{address}</code>\n"
                 f"🏷 Tag: <b>{tag}</b>\n"
-                f"📈 {wr} | {pnl_text}"
+                f"📈 {wr_string} | {pnl_text}"
             )
 
-            # 🧠 SmartCoach-Button
             button = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(
                     text="🧠 SmartCoach Analyse",
-                    callback_data=f"smartcoach_reply:{wr}:{tag}:{profit}:{address}"
+                    callback_data=f"smartcoach_reply:{address}"
                 )]
             ])
 
