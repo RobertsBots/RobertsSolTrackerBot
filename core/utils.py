@@ -8,15 +8,18 @@ from core.database import add_wallet
 
 logger = logging.getLogger(__name__)
 
+# ✅ Adresse kürzen für UI
 def shorten_address(address: str) -> str:
     return f"{address[:4]}...{address[-4:]}" if address else "N/A"
 
+# ✅ SOL-Wert schön formatieren
 def format_sol(value: float) -> str:
     try:
         return f"{value:.2f} ◎"
     except Exception:
         return "0.00 ◎"
 
+# ✅ PnL farblich formatieren
 def format_pnl(value: float) -> str:
     try:
         if value is None:
@@ -26,34 +29,15 @@ def format_pnl(value: float) -> str:
     except Exception:
         return "⚪️ PnL(n/a)"
 
+# ✅ DEX Screener Link generieren
 def generate_dexscreener_link(token_address: str) -> str:
     return f"https://dexscreener.com/solana/{token_address}"
 
+# ✅ Aktueller UTC-Zeitstempel
 def get_timestamp() -> str:
     return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
 
-async def fetch_wallet_data(wallet: str) -> dict:
-    url = f"https://api.solscan.io/account/tokens?account={wallet}"
-    async with httpx.AsyncClient(timeout=10) as client:
-        try:
-            response = await client.get(url)
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPError as e:
-            logger.warning(f"⚠️ HTTPError bei fetch_wallet_data({wallet}): {e}")
-        except Exception as e:
-            logger.error(f"❌ Fehler bei fetch_wallet_data({wallet}): {e}")
-        return {}
-
-def parse_wallet_trade(data: dict) -> str:
-    try:
-        token = data.get("tokenSymbol", "UNKNOWN")
-        amount = float(data.get("tokenAmount", {}).get("uiAmount", 0))
-        return f"{token} ({amount:.2f})"
-    except Exception as e:
-        logger.error(f"❌ Fehler bei parse_wallet_trade: {e}")
-        return "ParseError"
-
+# ✅ Winrate farblich + als Text
 def colorize_winrate(wins: int, losses: int) -> str:
     try:
         total = wins + losses
@@ -66,6 +50,7 @@ def colorize_winrate(wins: int, losses: int) -> str:
         logger.error(f"❌ Fehler bei colorize_winrate: {e}")
         return "WR(0/0)"
 
+# ✅ Reine Zahl der Winrate in Prozent
 def calculate_winrate(wins: int, losses: int) -> float:
     try:
         total = wins + losses
@@ -74,6 +59,7 @@ def calculate_winrate(wins: int, losses: int) -> float:
         logger.error(f"❌ Fehler bei calculate_winrate: {e}")
         return 0.0
 
+# ✅ Aktive Webhook-URL ermitteln
 def get_webhook_url() -> str:
     base_url = (
         os.getenv("WEBHOOK_URL") or
@@ -84,7 +70,7 @@ def get_webhook_url() -> str:
         raise ValueError("❌ WEBHOOK_URL, RENDER_EXTERNAL_URL oder RAILWAY_STATIC_URL ist nicht gesetzt.")
     return base_url.rstrip("/") + "/webhook"
 
-# 💡 Neue Hilfsfunktion: Mint → Tokenname
+# ✅ Mint → Tokenname (über Birdeye)
 async def get_token_name(mint: str) -> str:
     try:
         url = f"https://public-api.birdeye.so/public/token/{mint}"
@@ -98,7 +84,17 @@ async def get_token_name(mint: str) -> str:
         logger.warning(f"⚠️ Fehler beim Auflösen des Token-Namens für {mint}: {e}")
         return mint[:4] + "..."
 
-# 🔁 Optional: Legacy Funktion behalten (SmartFinder)
+# ✅ Solscan Trade-Data grob parsen
+def parse_wallet_trade(data: dict) -> str:
+    try:
+        token = data.get("tokenSymbol", "UNKNOWN")
+        amount = float(data.get("tokenAmount", {}).get("uiAmount", 0))
+        return f"{token} ({amount:.2f})"
+    except Exception as e:
+        logger.error(f"❌ Fehler bei parse_wallet_trade: {e}")
+        return "ParseError"
+
+# 🔁 Legacy Helper: Detection-Post direkt
 async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict):
     try:
         address = wallet.get("address", "N/A")
