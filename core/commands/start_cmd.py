@@ -32,7 +32,7 @@ async def start_cmd(message: types.Message):
         "✨ Oder nutze einfach die Buttons unten:"
     )
 
-    msg = await message.answer(text, parse_mode="MarkdownV2", reply_markup=start_buttons())
+    msg = await message.answer(text, parse_mode="HTML", reply_markup=start_buttons())
     await save_user_start_message_id(user_id, msg.message_id)
 
 # 🧩 Richtig benennen für __init__.py
