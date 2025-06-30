@@ -26,3 +26,14 @@ def get_smart_finder_menu():
             InlineKeyboardButton(text="🔙 Zurück", callback_data="main_menu")
         ]
     ])
+
+def start_buttons():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="➕ Wallet hinzufügen", callback_data="add_wallet"),
+            InlineKeyboardButton(text="📃 Getrackte Wallets", callback_data="list_wallets")
+        ],
+        [
+            InlineKeyboardButton(text="🔍 SmartFinder starten", callback_data="smartfinder_menu"),
+        ]
+    ])
