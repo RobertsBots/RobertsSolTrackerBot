@@ -13,7 +13,7 @@ async def list_wallets_cmd(message: types.Message):
     wallets = await get_wallets(user_id=user_id)
 
     if not wallets:
-        await message.answer("📭 Du hast noch keine Wallets hinzugefügt.")
+        await message.answer("💤 Du hast aktuell keine Wallets zum Anzeigen.\n\nNutze `/add <wallet> <tag>`, um eine neue Wallet zu tracken.", parse_mode="Markdown")
         return
 
     await message.answer("📄 <b>Deine getrackten Wallets:</b>", parse_mode="HTML")
