@@ -1,8 +1,8 @@
 import os
-import asyncio
 from datetime import datetime
 from dotenv import load_dotenv
 from supabase import create_client, Client
+import asyncio
 
 load_dotenv()
 
@@ -14,7 +14,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ✅ WALLET-FUNKTIONEN
+# ✅ WALLET FUNKTIONEN
 async def add_wallet(user_id: int, wallet: str, tag: str = "") -> bool:
     result = await asyncio.to_thread(
         lambda: supabase.table("wallets").select("*").eq("wallet", wallet).eq("user_id", user_id).execute()
@@ -116,33 +116,6 @@ async def get_finder_mode(user_id: int) -> str:
         return result.data[0]["mode"]
     return "off"
 
-# ✅ START-NACHRICHT für Auto-Delete
-async def save_user_start_message_id(user_id: int, message_id: int):
-    result = await asyncio.to_thread(
-        lambda: supabase.table("start_messages").select("*").eq("user_id", user_id).execute()
-    )
-    if result.data:
-        await asyncio.to_thread(
-            lambda: supabase.table("start_messages").update({
-                "message_id": message_id
-            }).eq("user_id", user_id).execute()
-        )
-    else:
-        await asyncio.to_thread(
-            lambda: supabase.table("start_messages").insert({
-                "user_id": user_id,
-                "message_id": message_id
-            }).execute()
-        )
-
-async def get_user_start_message_id(user_id: int) -> int:
-    result = await asyncio.to_thread(
-        lambda: supabase.table("start_messages").select("message_id").eq("user_id", user_id).execute()
-    )
-    if result.data:
-        return result.data[0].get("message_id")
-    return None
-
 # ✅ Letzte Aktivität speichern
 async def update_last_tx_time(wallet: str):
     now = datetime.utcnow().isoformat()
@@ -159,7 +132,7 @@ async def get_last_tx_time(wallet: str):
         return datetime.fromisoformat(result.data[0]["last_tx_time"])
     return None
 
-# ✅ SOL-Balance abrufen
+# ✅ Aktuelle & initiale SOL-Balance abrufen
 async def get_wallet_sol_balance(wallet: str) -> tuple:
     result = await asyncio.to_thread(
         lambda: supabase.table("wallets").select("initial_sol_balance", "last_sol_balance").eq("wallet", wallet).execute()
@@ -170,9 +143,34 @@ async def get_wallet_sol_balance(wallet: str) -> tuple:
         return float(initial), float(current)
     return 0.0, 0.0
 
-# ✅ SOL-Balance setzen
+# ✅ Initiale oder aktuelle Balance setzen
 async def set_wallet_sol_balance(wallet: str, balance: float, set_initial=False):
     column = "initial_sol_balance" if set_initial else "last_sol_balance"
     await asyncio.to_thread(
         lambda: supabase.table("wallets").update({column: balance}).eq("wallet", wallet).execute()
     )
+
+# ✅ NEU: Start-Message-ID speichern für Inline-Aktualisierung
+async def set_start_message_id(user_id: int, message_id: int):
+    result = await asyncio.to_thread(
+        lambda: supabase.table("start_messages").select("*").eq("user_id", user_id).execute()
+    )
+    if result.data:
+        await asyncio.to_thread(
+            lambda: supabase.table("start_messages").update({"message_id": message_id}).eq("user_id", user_id).execute()
+        )
+    else:
+        await asyncio.to_thread(
+            lambda: supabase.table("start_messages").insert({
+                "user_id": user_id,
+                "message_id": message_id
+            }).execute()
+        )
+
+async def get_start_message_id(user_id: int) -> int:
+    result = await asyncio.to_thread(
+        lambda: supabase.table("start_messages").select("message_id").eq("user_id", user_id).execute()
+    )
+    if result.data and result.data[0].get("message_id"):
+        return int(result.data[0]["message_id"])
+    return None
