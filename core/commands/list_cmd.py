@@ -18,17 +18,21 @@ async def list_wallets_cmd(message: types.Message):
     response = "📄 <b>Deine getrackten Wallets:</b>\n\n"
 
     for wallet in wallets:
-        address = wallet.get("address", "Unbekannt")
-        tag = wallet.get("tag", "-")
-        profit = wallet.get("profit", 0)
-        wr = calculate_wallet_wr(wallet)
-        pnl_text = format_pnl(profit)
+        try:
+            address = wallet.get("address", "Unbekannt")
+            tag = wallet.get("tag", "-")
+            profit = wallet.get("profit", 0)
+            wr = calculate_wallet_wr(wallet)
+            pnl_text = format_pnl(profit)
 
-        response += (
-            f"<code>{address}</code>\n"
-            f"🏷 Tag: <b>{tag}</b>\n"
-            f"📈 {wr} | {pnl_text}\n\n"
-        )
+            response += (
+                f"<code>{address}</code>\n"
+                f"🏷 Tag: <b>{tag}</b>\n"
+                f"📈 {wr} | {pnl_text}\n\n"
+            )
+        except Exception as e:
+            logger.warning(f"❗️ Fehler beim Rendern einer Wallet-Zeile: {e}")
+            continue
 
     await message.answer(response, parse_mode="HTML")
 
