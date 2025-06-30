@@ -12,14 +12,14 @@ async def profit_cmd(message: types.Message):
         user_id = message.from_user.id if message.from_user else None
 
         if not user_id:
-            await message.answer("❗️Benutzer-ID fehlt.")
+            await message.answer("❗️ Benutzer-ID fehlt.")
             return
 
         args = message.text.strip().split()
 
         if len(args) != 3:
             await message.answer(
-                "❗️Falsche Nutzung von /profit\n\nBitte nutze:\n`/profit <WALLET> <+/-BETRAG>`",
+                "❗️ Falsche Nutzung von /profit\n\nBitte nutze:\n`/profit <WALLET> <+/-BETRAG>`",
                 parse_mode="Markdown"
             )
             return
@@ -30,7 +30,7 @@ async def profit_cmd(message: types.Message):
             amount = float(raw_amount)
         except ValueError:
             await message.answer(
-                "❗️Ungültiger Betrag. Beispiel: `/profit ABC...XYZ +1.5`",
+                "❗️ Ungültiger Betrag. Beispiel: `/profit ABC...XYZ +1.5`",
                 parse_mode="Markdown"
             )
             return
@@ -47,12 +47,12 @@ async def profit_cmd(message: types.Message):
         logger.exception("❌ Fehler bei /profit:")
         await message.answer("⚠️ Ein Fehler ist aufgetreten beim Setzen des Profits.")
 
-# Callback-Handler für Buttons mit "profit:<wallet>"
+# Callback-Handler z. B. von Inline-Button
 async def handle_profit_callback(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
         await callback_query.message.edit_text(
-            "❗️Bitte sende den Profit-Wert manuell als Befehl im Format:\n`/profit <WALLET> <+/-BETRAG>`",
+            "📥 Bitte sende den Profit-Befehl manuell im Format:\n\n`/profit <WALLET> <+/-BETRAG>`",
             parse_mode="Markdown"
         )
     except Exception as e:
