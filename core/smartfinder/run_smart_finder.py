@@ -31,7 +31,7 @@ async def run_smart_wallet_finder(bot: Bot):
             response = await client.get(url, headers=headers)
             response.raise_for_status()
 
-            data = response.json()
+            data = await response.json()
             rows = data.get("result", {}).get("rows", [])
 
             if not rows:
