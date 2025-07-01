@@ -8,7 +8,7 @@ from core.database import get_wallets
 logger = logging.getLogger(__name__)
 
 async def handle_start_buttons_callback(callback_query: types.CallbackQuery):
-    await callback_query.answer()  # Lade-Spinner stoppen
+    await callback_query.answer()
 
     data = callback_query.data
 
@@ -90,6 +90,7 @@ async def handle_smartcoach_reply(callback_query: types.CallbackQuery):
     except Exception as e:
         logger.exception("❌ Fehler bei SmartCoach Analyse:")
         await callback_query.message.answer("⚠️ Fehler bei SmartCoach-Analyse.")
+
 
 def register_callback_buttons(dp):
     dp.register_callback_query_handler(handle_start_buttons_callback, lambda c: c.data and c.data.startswith("start:"))
