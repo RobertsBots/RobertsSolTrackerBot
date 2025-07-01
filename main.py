@@ -15,7 +15,7 @@ from core.utils import get_webhook_url
 # ------------------------------------------------
 # Logging Setup
 # ------------------------------------------------
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 logging.basicConfig(
     level=logging.DEBUG if DEBUG else logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -68,20 +68,25 @@ async def healthcheck():
     return {"status": "healthy"}
 
 # ------------------------------------------------
-# Startup & Shutdown
+# Startup & Shutdown Events
 # ------------------------------------------------
-WEBHOOK_URL = get_webhook_url()
-if not WEBHOOK_URL:
-    logger.warning("⚠️ Keine WEBHOOK_URL gesetzt!")
+WEBHOOK_URL = None
+try:
+    WEBHOOK_URL = get_webhook_url()
+except Exception as e:
+    logger.warning(f"⚠️ Fehler beim Ermitteln der WEBHOOK_URL: {e}")
 
 @app.on_event("startup")
 async def startup():
-    try:
-        setup_cron_jobs(bot)
-        await bot.set_webhook(WEBHOOK_URL)
-        logger.info(f"✅ Webhook gesetzt auf: {WEBHOOK_URL}")
-    except Exception as e:
-        logger.exception("❌ Fehler beim Setzen des Webhooks oder Cron-Setup:")
+    if not WEBHOOK_URL:
+        logger.warning("⚠️ Keine WEBHOOK_URL gesetzt, Webhook wird nicht registriert!")
+    else:
+        try:
+            setup_cron_jobs(bot)
+            await bot.set_webhook(WEBHOOK_URL)
+            logger.info(f"✅ Webhook gesetzt auf: {WEBHOOK_URL}")
+        except Exception as e:
+            logger.exception("❌ Fehler beim Setzen des Webhooks oder beim Cron-Setup:")
 
 @app.on_event("shutdown")
 async def shutdown():
