@@ -18,7 +18,7 @@ async def handle_start_buttons_callback(callback_query):
 
     if data == "start:add_wallet":
         await callback_query.answer()
-        await callback_query.message.answer(
+        await callback_query.message.reply(
             "Bitte sende mir die Wallet-Adresse im Format:\n\n"
             "<code>/add WALLET TAG</code>\n\n"
             "Beispiel:\n"
@@ -27,19 +27,19 @@ async def handle_start_buttons_callback(callback_query):
         )
     elif data == "start:remove_wallet":
         await callback_query.answer()
-        await callback_query.message.answer(
+        await callback_query.message.reply(
             "Nutze <code>/rm</code>, um eine Wallet zu entfernen.",
             parse_mode="HTML"
         )
     elif data == "start:list_wallets":
         await callback_query.answer()
-        await callback_query.message.answer(
+        await callback_query.message.reply(
             "Nutze <code>/list</code>, um deine getrackten Wallets anzuzeigen.",
             parse_mode="HTML"
         )
     elif data == "start:add_profit":
         await callback_query.answer()
-        await callback_query.message.answer(
+        await callback_query.message.reply(
             "Nutze <code>/profit WALLET +10</code>, um Profit oder Verlust einzutragen.",
             parse_mode="HTML"
         )
@@ -51,13 +51,13 @@ async def handle_start_buttons_callback(callback_query):
         # Hier optional: await Aufruf eines Kommandos oder Logik einfügen
     elif data == "start:coach":
         await callback_query.answer()
-        await callback_query.message.answer(
+        await callback_query.message.reply(
             "Nutze <code>/coach WALLET</code>, um eine SmartCoach-Analyse zu erhalten.",
             parse_mode="HTML"
         )
     elif data == "start:backup":
         await callback_query.answer()
-        await callback_query.message.answer(
+        await callback_query.message.reply(
             "Backup-Funktion ist noch in Arbeit.",
             parse_mode="HTML"
         )
