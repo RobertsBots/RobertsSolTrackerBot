@@ -13,30 +13,20 @@ async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict)
             logger.warning("⚠️ Ungültige oder leere Wallet-Adresse erhalten.")
             return
 
-        try:
-            winrate = float(wallet.get("winrate", 0))
-        except (ValueError, TypeError):
-            winrate = 0.0
+        # Sicheres Parsen mit Fallback auf 0.0 oder 0
+        def safe_float(key): 
+            try: return float(wallet.get(key, 0))
+            except (ValueError, TypeError): return 0.0
 
-        try:
-            roi = float(wallet.get("roi", 0))
-        except (ValueError, TypeError):
-            roi = 0.0
+        def safe_int(key): 
+            try: return int(wallet.get(key, 0))
+            except (ValueError, TypeError): return 0
 
-        try:
-            pnl = float(wallet.get("pnl", 0))
-        except (ValueError, TypeError):
-            pnl = 0.0
-
-        try:
-            age = int(wallet.get("account_age", 0))
-        except (ValueError, TypeError):
-            age = 0
-
-        try:
-            sol = float(wallet.get("sol_balance", 0))
-        except (ValueError, TypeError):
-            sol = 0.0
+        winrate = safe_float("winrate")
+        roi = safe_float("roi")
+        pnl = safe_float("pnl")
+        age = safe_int("account_age")
+        sol = safe_float("sol_balance")
 
         tag = "🚀 AutoDetected"
         tp = round(roi * 1.2, 1)
@@ -47,31 +37,26 @@ async def post_wallet_detection_message(bot: Bot, channel_id: str, wallet: dict)
             logger.info(f"🔁 Wallet {address} wurde bereits hinzugefügt.")
             return
 
-        message = f"""
-🚨 <b>Neue smarte Wallet erkannt!</b>
-
-<b>🏷️ Wallet:</b> <code>{address}</code>
-<b>📈 Winrate:</b> {winrate:.1f}%
-<b>💹 ROI:</b> {roi:.2f}%
-<b>💰 PnL:</b> {pnl:.2f} SOL
-<b>📅 Account Age:</b> {age} Tage
-<b>🧾 Balance:</b> {sol:.2f} SOL
-<b>🏷️ Tag:</b> {tag}
-        """.strip()
+        message = (
+            f"🚨 <b>Neue smarte Wallet erkannt!</b>\n\n"
+            f"<b>🏷️ Wallet:</b> <code>{address}</code>\n"
+            f"<b>📈 Winrate:</b> {winrate:.1f}%\n"
+            f"<b>💹 ROI:</b> {roi:.2f}%\n"
+            f"<b>💰 PnL:</b> {pnl:.2f} SOL\n"
+            f"<b>📅 Account Age:</b> {age} Tage\n"
+            f"<b>🧾 Balance:</b> {sol:.2f} SOL\n"
+            f"<b>🏷️ Tag:</b> {tag}"
+        )
 
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="📊 Auf Birdeye",
-                    url=f"https://birdeye.so/address/{address}?chain=solana"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text="🧠 SmartCoach Analyse",
-                    callback_data=f"smartcoach_reply:{address}:{winrate}:{roi}:{tp}:{sl}"
-                )
-            ]
+            [InlineKeyboardButton(
+                text="📊 Auf Birdeye",
+                url=f"https://birdeye.so/address/{address}?chain=solana"
+            )],
+            [InlineKeyboardButton(
+                text="🧠 SmartCoach Analyse",
+                callback_data=f"smartcoach_reply:{address}:{winrate}:{roi}:{tp}:{sl}"
+            )]
         ])
 
         await bot.send_message(
@@ -104,6 +89,7 @@ async def send_smartcoach_reply(callback_query: types.CallbackQuery):
             await callback_query.answer("❗️ Ungültige Analysewerte.", show_alert=True)
             return
 
+        # wr ist Prozentwert, konvertiere in 0-1 Bereich
         message = smartcoach_reply(wr=wr / 100, roi=roi, tp=tp, sl=sl)
 
         await callback_query.answer()
