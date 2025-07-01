@@ -1,6 +1,12 @@
 import random
+from typing import Optional
 
-def smartcoach_reply(wr: float, roi: float = None, tp: float = None, sl: float = None) -> str:
+def smartcoach_reply(
+    wr: float,
+    roi: Optional[float] = None,
+    tp: Optional[float] = None,
+    sl: Optional[float] = None
+) -> str:
     try:
         # Sanity-Check und Kategorisierung
         wr = max(0.0, min(1.0, wr or 0.0))
