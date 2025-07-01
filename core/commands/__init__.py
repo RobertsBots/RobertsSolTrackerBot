@@ -45,10 +45,10 @@ async def handle_start_buttons_callback(callback_query):
         )
     elif data == "start:finder_on":
         await callback_query.answer("SmartFinder wird gestartet!")
-        # Optional: triggere /finder Kommando oder Setze Modus direkt
+        # Hier optional: await Aufruf eines Kommandos oder Logik einfügen
     elif data == "start:finder_off":
         await callback_query.answer("SmartFinder wird gestoppt!")
-        # Optional: triggere /finder Kommando oder Setze Modus direkt
+        # Hier optional: await Aufruf eines Kommandos oder Logik einfügen
     elif data == "start:coach":
         await callback_query.answer()
         await callback_query.message.answer(
@@ -75,6 +75,6 @@ def main_router(dp: Dispatcher):
     register_list_cmd(dp)
     register_profit_cmd(dp)
     register_finder_cmd(dp)
-    register_callback_buttons(dp)
+    register_callback_buttons(dp)  # Andere Callback-Handler (z.B. smartcoach)
     register_coach_cmd(dp)
-    register_start_buttons_callbacks(dp)
+    register_start_buttons_callbacks(dp)  # Neu: Start-Menu Button Callbacks
