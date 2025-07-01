@@ -7,7 +7,6 @@ from core.alerts import notify_user
 
 logger = logging.getLogger(__name__)
 
-# /finder Befehl → öffnet Modusauswahl mit Hilfestellung
 async def finder_cmd(message: types.Message):
     try:
         Bot.set_current(message.bot)
@@ -44,10 +43,13 @@ async def finder_cmd(message: types.Message):
         logger.exception("❌ Fehler bei /finder:")
         await message.answer("❌ Beim Öffnen des Finder-Menüs ist ein Fehler aufgetreten.")
 
-# Callback-Handler für Auswahlbuttons
+
 async def handle_finder_callback(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
+
+        # Antwort an Telegram direkt zu Beginn, um Ladeanzeige zu stoppen
+        await callback_query.answer()
 
         if not callback_query.data or ":" not in callback_query.data:
             await callback_query.answer("❗️ Ungültige Auswahl.", show_alert=True)
@@ -59,8 +61,6 @@ async def handle_finder_callback(callback_query: types.CallbackQuery):
             return
 
         mode = callback_query.data.split(":")[1]
-
-        await callback_query.answer()  # Stoppt Ladeanzeige, ohne Text
 
         if mode == "moon":
             await set_finder_mode(user_id, "moon")
@@ -87,14 +87,19 @@ async def handle_finder_callback(callback_query: types.CallbackQuery):
             await callback_query.answer("❗️Unbekannter Modus.", show_alert=True)
             return
 
-        await notify_user(user_id, f"✅ SmartFinder-Modus: <code>{mode}</code>")
+        # Optional: Nutzer benachrichtigen
+        # await notify_user(user_id, f"✅ SmartFinder-Modus: <code>{mode}</code>")
+
         logger.info(f"Finder-Modus gesetzt auf {mode.upper()} – User {user_id}")
 
     except Exception as e:
         logger.exception("❌ Fehler bei Finder-Callback:")
-        await callback_query.answer("❌ Fehler bei der Modusauswahl.", show_alert=True)
+        try:
+            await callback_query.answer("❌ Fehler bei der Modusauswahl.", show_alert=True)
+        except Exception:
+            pass
 
-# Dispatcher-Registrierung
+
 def register_finder_cmd(dp: Dispatcher):
     dp.register_message_handler(finder_cmd, commands=["finder"])
     dp.register_callback_query_handler(handle_finder_callback, lambda c: c.data and c.data.startswith("finder:"))
