@@ -8,9 +8,9 @@ logger = logging.getLogger(__name__)
 async def add_wallet_cmd(message: types.Message):
     try:
         Bot.set_current(message.bot)
-        args = message.text.split()
+        args = message.text.split(maxsplit=2)
 
-        if len(args) != 3:
+        if len(args) < 3:
             await message.answer(
                 "❗️Falsche Nutzung von <code>/add</code>\n\nNutze:\n<code>/add WALLET TAG</code>",
                 parse_mode="HTML",
