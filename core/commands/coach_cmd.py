@@ -32,16 +32,14 @@ async def coach_cmd(message: types.Message):
             )
             return
 
-        # Werte holen
-        wins = int(target.get("wins", 0))
-        losses = int(target.get("losses", 0))
+        wins = int(target.get("wins", 0) or 0)
+        losses = int(target.get("losses", 0) or 0)
         total = wins + losses
         wr_raw = (wins / total) if total > 0 else 0.0
-        roi = float(target.get("roi", 0.0)) if "roi" in target else None
+        roi = float(target.get("roi") or 0.0)
         tp = None
         sl = None
 
-        # SmartCoach-Antwort erzeugen
         coach_response = smartcoach_reply(wr_raw, roi=roi, tp=tp, sl=sl)
 
         await message.answer(
