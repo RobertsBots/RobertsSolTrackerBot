@@ -8,8 +8,12 @@ logger = logging.getLogger(__name__)
 
 async def coach_cmd(message: types.Message):
     Bot.set_current(message.bot)
-    user_id = message.from_user.id
+    user_id = message.from_user.id if message.from_user else None
     args = message.get_args()
+
+    if not user_id:
+        await message.reply("❗️ Benutzer-ID konnte nicht ermittelt werden.")
+        return
 
     if not args:
         await message.reply(
