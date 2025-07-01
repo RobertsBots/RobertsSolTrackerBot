@@ -48,7 +48,6 @@ async def handle_finder_callback(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
 
-        # Antwort an Telegram direkt zu Beginn, um Ladeanzeige zu stoppen
         await callback_query.answer()
 
         if not callback_query.data or ":" not in callback_query.data:
@@ -87,7 +86,7 @@ async def handle_finder_callback(callback_query: types.CallbackQuery):
             await callback_query.answer("❗️Unbekannter Modus.", show_alert=True)
             return
 
-        # Optional: Nutzer benachrichtigen
+        # Optional: User benachrichtigen
         # await notify_user(user_id, f"✅ SmartFinder-Modus: <code>{mode}</code>")
 
         logger.info(f"Finder-Modus gesetzt auf {mode.upper()} – User {user_id}")
