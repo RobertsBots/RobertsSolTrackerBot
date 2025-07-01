@@ -14,7 +14,7 @@ async def list_wallets_cmd(message: types.Message):
 
     if not wallets:
         await message.answer(
-            "💤 Du hast aktuell keine Wallets zum Anzeigen.<br><br>"
+            "💤 Du hast aktuell keine Wallets zum Anzeigen.\n\n"
             "Nutze <code>/add &lt;wallet&gt; &lt;tag&gt;</code>, um eine neue Wallet zu tracken.",
             parse_mode="HTML"
         )
