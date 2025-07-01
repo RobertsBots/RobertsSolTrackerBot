@@ -40,4 +40,4 @@ async def handle_smartcoach_reply(callback_query: types.CallbackQuery):
         await callback_query.message.answer("⚠️ Fehler bei SmartCoach-Analyse.")
 
 def register_callback_buttons(dp):
-    dp.register_callback_query_handler(handle_smartcoach_reply, lambda c: c.data.startswith("smartcoach_reply:"))
+    dp.register_callback_query_handler(handle_smartcoach_reply, lambda c: c.data and c.data.startswith("smartcoach_reply:"))
