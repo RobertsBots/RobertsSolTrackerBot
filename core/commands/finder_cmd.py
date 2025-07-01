@@ -60,6 +60,8 @@ async def handle_finder_callback(callback_query: types.CallbackQuery):
 
         mode = callback_query.data.split(":")[1]
 
+        await callback_query.answer()  # Stoppt Ladeanzeige, ohne Text
+
         if mode == "moon":
             await set_finder_mode(user_id, "moon")
             await callback_query.message.edit_text(
