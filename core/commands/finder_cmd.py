@@ -68,7 +68,8 @@ async def handle_finder_callback(callback_query: types.CallbackQuery):
         # Scan direkt starten, außer bei "off"
         if mode != "off":
             # Nebenläufig starten, um UI nicht zu blockieren
-            asyncio.create_task(run_smart_wallet_finder(callback_query.bot))
+            # WICHTIG: Mode wird mitgegeben, damit run_smart_wallet_finder weiß, welchen Query zu nutzen
+            asyncio.create_task(run_smart_wallet_finder(callback_query.bot, mode=mode))
 
         if mode == "moon":
             await callback_query.message.edit_text(
