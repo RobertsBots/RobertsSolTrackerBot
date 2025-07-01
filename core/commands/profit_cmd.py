@@ -19,8 +19,8 @@ async def profit_cmd(message: types.Message):
 
         if len(args) != 3:
             await message.answer(
-                "❗️ Falsche Nutzung von <code>/profit</code><br><br>"
-                "Bitte nutze:<br><code>/profit &lt;WALLET&gt; &lt;+/-BETRAG&gt;</code>",
+                "❗️ Falsche Nutzung von <code>/profit</code>\n\n"
+                "Bitte nutze:\n<code>/profit &lt;WALLET&gt; &lt;+/-BETRAG&gt;</code>",
                 parse_mode="HTML"
             )
             return
@@ -31,7 +31,7 @@ async def profit_cmd(message: types.Message):
             amount = float(raw_amount)
         except ValueError:
             await message.answer(
-                "❗️ Ungültiger Betrag.<br><br>Beispiel: <code>/profit ABC...XYZ +1.5</code>",
+                "❗️ Ungültiger Betrag.\n\nBeispiel: <code>/profit ABC...XYZ +1.5</code>",
                 parse_mode="HTML"
             )
             return
@@ -53,7 +53,7 @@ async def handle_profit_callback(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
         await callback_query.message.edit_text(
-            "📥 Bitte sende den Profit-Befehl manuell im Format:<br><br>"
+            "📥 Bitte sende den Profit-Befehl manuell im Format:\n\n"
             "<code>/profit &lt;WALLET&gt; &lt;+/-BETRAG&gt;</code>",
             parse_mode="HTML"
         )
