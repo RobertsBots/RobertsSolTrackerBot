@@ -9,7 +9,12 @@ logger = logging.getLogger(__name__)
 
 async def list_wallets_cmd(message: types.Message):
     Bot.set_current(message.bot)
-    user_id = message.from_user.id
+    user_id = message.from_user.id if message.from_user else None
+
+    if not user_id:
+        await message.answer("❗️ Benutzer-ID konnte nicht ermittelt werden.")
+        return
+
     wallets = await get_wallets(user_id=user_id)
 
     if not wallets:
@@ -24,7 +29,7 @@ async def list_wallets_cmd(message: types.Message):
 
     for wallet in wallets:
         try:
-            address = wallet.get("address", "Unbekannt")
+            address = wallet.get("address") or wallet.get("wallet") or "Unbekannt"
             tag = wallet.get("tag", "-")
             profit = wallet.get("profit", 0)
             wr_string = await calculate_wallet_wr(user_id, address)
@@ -36,14 +41,14 @@ async def list_wallets_cmd(message: types.Message):
                 f"📊 <b>{wr_string}</b> | {pnl_text}"
             )
 
-            button = InlineKeyboardMarkup(inline_keyboard=[
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(
                     text="🧠 SmartCoach Analyse",
                     callback_data=f"smartcoach_reply:{address}"
                 )]
             ])
 
-            await message.answer(text, parse_mode="HTML", reply_markup=button)
+            await message.answer(text, parse_mode="HTML", reply_markup=keyboard)
 
         except Exception as e:
             logger.warning(f"❗️ Fehler beim Rendern einer Wallet-Zeile: {e}")
