@@ -11,7 +11,8 @@ async def calculate_wallet_wr(user_id: int, wallet: str) -> str:
             logger.warning(f"⚠️ Keine Wallets gefunden für User {user_id}")
             return "⚪️ Keine Daten"
 
-        target = next((w for w in wallets if w.get("wallet") == wallet), None)
+        # Wallet suchen: akzeptiere sowohl "wallet" als auch "address" als Schlüssel
+        target = next((w for w in wallets if w.get("wallet") == wallet or w.get("address") == wallet), None)
         if not target:
             logger.warning(f"⚠️ Wallet {wallet} nicht gefunden für User {user_id}")
             return "⚪️ Nicht gefunden"
