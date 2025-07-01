@@ -31,47 +31,47 @@ async def run_smart_wallet_finder(bot: Bot):
             response = await client.get(url, headers=headers)
             response.raise_for_status()
 
-        data = response.json()
-        rows = data.get("result", {}).get("rows", [])
+            data = response.json()
+            rows = data.get("result", {}).get("rows", [])
 
-        if not rows:
-            logger.warning("⚠️ Dune API hat keine Wallets zurückgegeben.")
-            return
+            if not rows:
+                logger.warning("⚠️ Dune API hat keine Wallets zurückgegeben.")
+                return
 
-        for row in rows:
-            try:
-                winrate = float(row.get("winrate", 0))
-                roi = float(row.get("roi", 0))
+            for row in rows:
+                try:
+                    winrate = float(row.get("winrate", 0))
+                    roi = float(row.get("roi", 0))
 
-                if winrate >= 70 and roi >= 5:
-                    wallet_address = row.get("wallet", "")
-                    if not wallet_address:
-                        continue
+                    if winrate >= 70 and roi >= 5:
+                        wallet_address = row.get("wallet", "")
+                        if not wallet_address:
+                            continue
 
-                    wallet_data = {
-                        "address": wallet_address,
-                        "winrate": winrate,
-                        "roi": roi,
-                        "pnl": float(row.get("realized_pnl", 0)),
-                        "account_age": int(row.get("wallet_age_days", 0)),
-                        "sol_balance": float(row.get("sol_balance", 0))
-                    }
+                        wallet_data = {
+                            "address": wallet_address,
+                            "winrate": winrate,
+                            "roi": roi,
+                            "pnl": float(row.get("realized_pnl", 0)),
+                            "account_age": int(row.get("wallet_age_days", 0)),
+                            "sol_balance": float(row.get("sol_balance", 0))
+                        }
 
-                    added = await add_wallet(user_id=0, wallet=wallet_data["address"], tag="🚀 AutoDetected")
+                        added = await add_wallet(user_id=0, wallet=wallet_data["address"], tag="🚀 AutoDetected")
 
-                    if added:
-                        await post_wallet_detection_message(
-                            bot=bot,
-                            channel_id=TELEGRAM_CHANNEL_ID,
-                            wallet=wallet_data
-                        )
-                        logger.info(f"✅ Neue Wallet automatisch hinzugefügt: {wallet_address}")
-                    else:
-                        logger.info(f"🔁 Wallet bereits vorhanden: {wallet_address}")
+                        if added:
+                            await post_wallet_detection_message(
+                                bot=bot,
+                                channel_id=TELEGRAM_CHANNEL_ID,
+                                wallet=wallet_data
+                            )
+                            logger.info(f"✅ Neue Wallet automatisch hinzugefügt: {wallet_address}")
+                        else:
+                            logger.info(f"🔁 Wallet bereits vorhanden: {wallet_address}")
 
-            except Exception as row_err:
-                logger.warning(f"⚠️ Fehler beim Verarbeiten einer Wallet-Zeile: {row_err}")
-                continue
+                except Exception as row_err:
+                    logger.warning(f"⚠️ Fehler beim Verarbeiten einer Wallet-Zeile: {row_err}")
+                    continue
 
     except httpx.RequestError as e:
         logger.exception(f"🌐 Verbindungsfehler bei der Dune API: {e}")
