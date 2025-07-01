@@ -22,7 +22,6 @@ latest_tx_by_wallet = {}
 last_notified_inactive = {}
 last_notified_dump = {}
 
-# 💡 Hauptfunktion: Wallets auf Aktivität prüfen
 async def check_wallet_activity(bot: Bot):
     try:
         wallets = await get_wallets(user_id=0)
@@ -37,23 +36,25 @@ async def check_wallet_activity(bot: Bot):
                 if not address:
                     continue
 
-                # 👉 Abruf letzter Transaktion
+                # Letzte Transaktion abrufen
                 res = await client.get(SOLANA_API_URL.format(address))
                 if res.status_code != 200:
-                    logger.warning(f"⚠️ Solscan Fehler für {address}")
+                    logger.warning(f"⚠️ Solscan Fehler für {address} (Status: {res.status_code})")
                     continue
 
                 data = res.json()
                 txs = data.get("data", [])
                 if not txs:
+                    logger.debug(f"ℹ️ Keine Transaktionen gefunden für {address}")
                     continue
 
                 latest_tx = txs[0]
                 tx_sig = latest_tx.get("signature")
                 if not tx_sig:
+                    logger.debug(f"ℹ️ Keine Signatur für neueste Transaktion bei {address}")
                     continue
 
-                # Nur neue TXs behandeln
+                # Nur neue Transaktionen verarbeiten
                 if latest_tx_by_wallet.get(address) == tx_sig:
                     continue
                 latest_tx_by_wallet[address] = tx_sig
@@ -62,24 +63,23 @@ async def check_wallet_activity(bot: Bot):
 
                 token_info = await extract_token_info(latest_tx)
                 if not token_info:
+                    logger.debug(f"ℹ️ Keine Tokeninfo für Transaktion {tx_sig} bei {address}")
                     continue
 
                 token_name, amount, price, mint = token_info
                 dex_url = f"{DEX_BASE_URL}/{mint}?chain=solana"
 
-                message = f"""
-📢 <b>Neue Wallet-Aktivität entdeckt</b>
+                message = (
+                    f"📢 <b>Neue Wallet-Aktivität entdeckt</b>\n\n"
+                    f"🏷️ <b>Wallet:</b> <code>{address}</code>\n"
+                    f"🔁 <b>Tag:</b> {tag}\n"
+                    f"🪙 <b>Token:</b> {token_name}\n"
+                    f"📦 <b>Menge:</b> {amount}\n"
+                    f"💰 <b>Preis:</b> {price} SOL\n\n"
+                    f"🔗 <a href=\"{dex_url}\">Auf DexScreener</a>"
+                )
 
-🏷️ <b>Wallet:</b> <code>{address}</code>
-🔁 <b>Tag:</b> {tag}
-🪙 <b>Token:</b> {token_name}
-📦 <b>Menge:</b> {amount}
-💰 <b>Preis:</b> {price} SOL
-
-🔗 <a href="{dex_url}">Auf DexScreener</a>
-                """
-
-                await bot.send_message(chat_id=TELEGRAM_CHANNEL_ID, text=message.strip(), parse_mode="HTML")
+                await bot.send_message(chat_id=TELEGRAM_CHANNEL_ID, text=message, parse_mode="HTML")
                 logger.info(f"📬 Neue Aktivität bei {address} gepostet.")
 
                 # Reminder-Checks
@@ -89,7 +89,6 @@ async def check_wallet_activity(bot: Bot):
     except Exception as e:
         logger.exception(f"❌ Fehler bei check_wallet_activity: {e}")
 
-# 🔍 Extrahiert Tokeninformationen aus Solscan-TX
 async def extract_token_info(tx: dict):
     try:
         post_token = tx.get("postTokenBalances", [])
@@ -101,7 +100,9 @@ async def extract_token_info(tx: dict):
         if not mint:
             return None
 
-        amount = int(token.get("uiTokenAmount", {}).get("amount", 0)) / 1e9
+        amount_raw = token.get("uiTokenAmount", {}).get("amount", 0)
+        amount = int(amount_raw) / 1e9 if amount_raw else 0
+
         token_name = await get_token_name(mint)
         price = round(float(tx.get("fee", 0)) / 1e9, 5)
 
@@ -110,7 +111,6 @@ async def extract_token_info(tx: dict):
         logger.warning(f"⚠️ Fehler bei extract_token_info: {e}")
         return None
 
-# 💤 Warnung bei Inaktivität
 async def handle_inactivity_reminder(bot: Bot, address: str, tag: str, days_threshold=2):
     try:
         last_tx = await get_last_tx_time(address)
@@ -123,7 +123,7 @@ async def handle_inactivity_reminder(bot: Bot, address: str, tag: str, days_thre
 
         last_notify = last_notified_inactive.get(address)
         if last_notify and (datetime.utcnow() - last_notify).total_seconds() < 86400:
-            return  # max 1x/24h
+            return  # max 1x pro 24h
 
         await bot.send_message(
             chat_id=TELEGRAM_CHANNEL_ID,
@@ -134,7 +134,6 @@ async def handle_inactivity_reminder(bot: Bot, address: str, tag: str, days_thre
     except Exception as e:
         logger.warning(f"❗️ Fehler bei Inaktivitäts-Warnung: {e}")
 
-# 🚨 Warnung bei >80 % SOL verkauft
 async def handle_sol_dump_check(bot: Bot, address: str, tag: str, threshold=0.8):
     try:
         sol_before, sol_after = await get_wallet_sol_balance(address)
@@ -147,7 +146,7 @@ async def handle_sol_dump_check(bot: Bot, address: str, tag: str, threshold=0.8)
 
         last_notify = last_notified_dump.get(address)
         if last_notify and (datetime.utcnow() - last_notify).total_seconds() < 86400:
-            return  # max 1x/Tag
+            return  # max 1x pro 24h
 
         percent = round(dumped_ratio * 100, 2)
         await bot.send_message(
