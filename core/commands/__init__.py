@@ -7,7 +7,7 @@ from .rm_cmd import register_rm_cmd
 from .list_cmd import register_list_cmd
 from .profit_cmd import register_profit_cmd
 from .finder_cmd import register_finder_cmd
-from .coach_cmd import coach_cmd, register_coach_cmd
+from .coach_cmd import register_coach_cmd
 
 # ✅ Callback-Handler für Buttons
 from .callbacks import register_callback_buttons
