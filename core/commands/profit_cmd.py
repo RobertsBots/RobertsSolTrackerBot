@@ -36,6 +36,14 @@ async def profit_cmd(message: types.Message):
             )
             return
 
+        # Optional: Validierung, ob Wallet gültiges Format hat (z.B. Länge, Hex-Zeichen)
+        if len(wallet) < 10:
+            await message.answer(
+                "❗️ Ungültige Wallet-Adresse.",
+                parse_mode="HTML"
+            )
+            return
+
         await update_pnl(wallet, amount)
         color = "🟢" if amount > 0 else "🔴"
         await message.answer(
@@ -52,6 +60,7 @@ async def profit_cmd(message: types.Message):
 async def handle_profit_callback(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
+        await callback_query.answer()  # Lade-Spinner stoppen
         await callback_query.message.edit_text(
             "📥 Bitte sende den Profit-Befehl manuell im Format:\n\n"
             "<code>/profit &lt;WALLET&gt; &lt;+/-BETRAG&gt;</code>",
