@@ -1,7 +1,7 @@
-from aiogram import types
+from aiogram import types, Bot
 from aiogram.dispatcher import Dispatcher
 from core.database import get_user_start_message_id, save_user_start_message_id
-from core.buttons import start_buttons
+from core.buttons import start_menu_keyboard
 
 async def start_cmd(message: types.Message):
     user_id = message.from_user.id
@@ -32,9 +32,8 @@ async def start_cmd(message: types.Message):
         "✨ Oder nutze einfach die Buttons unten:"
     )
 
-    msg = await message.answer(text, parse_mode="HTML", reply_markup=start_buttons())
+    msg = await message.answer(text, parse_mode="HTML", reply_markup=start_menu_keyboard())
     await save_user_start_message_id(user_id, msg.message_id)
 
-# 🧩 Richtig benennen für __init__.py
 def register_start_cmd(dp: Dispatcher):
     dp.register_message_handler(start_cmd, commands=["start"])
