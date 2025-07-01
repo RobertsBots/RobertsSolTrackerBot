@@ -1,9 +1,11 @@
 import logging
+import asyncio
 from aiogram import types, Bot
 from aiogram.dispatcher import Dispatcher
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from core.database import get_finder_mode, set_finder_mode
 from core.alerts import notify_user
+from core.smartfinder.run_smart_finder import run_smart_wallet_finder
 
 logger = logging.getLogger(__name__)
 
@@ -61,22 +63,26 @@ async def handle_finder_callback(callback_query: types.CallbackQuery):
 
         mode = callback_query.data.split(":")[1]
 
+        await set_finder_mode(user_id, mode)
+
+        # Scan direkt starten, außer bei "off"
+        if mode != "off":
+            # Nebenläufig starten, um UI nicht zu blockieren
+            asyncio.create_task(run_smart_wallet_finder(callback_query.bot))
+
         if mode == "moon":
-            await set_finder_mode(user_id, "moon")
             await callback_query.message.edit_text(
                 "🌕 <b>Moonbag-Modus aktiviert!</b>\n\n"
                 "Der SmartFinder wird jetzt automatisch Wallets posten, die langfristige Gewinne & hohe Winrates zeigen.",
                 parse_mode="HTML"
             )
         elif mode == "scalp":
-            await set_finder_mode(user_id, "scalp")
             await callback_query.message.edit_text(
                 "⚡️ <b>Scalping-Modus aktiviert!</b>\n\n"
                 "Jetzt scannt der Bot nach schnellen Wallets mit explosiven Trades & scalptauglichem ROI.",
                 parse_mode="HTML"
             )
         elif mode == "off":
-            await set_finder_mode(user_id, "off")
             await callback_query.message.edit_text(
                 "❌ <b>SmartFinder deaktiviert.</b>\n\n"
                 "Es werden keine neuen Wallets mehr automatisch erkannt oder gepostet.",
