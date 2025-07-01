@@ -12,11 +12,11 @@ async def handle_smartcoach_reply(callback_query: types.CallbackQuery):
         Bot.set_current(callback_query.bot)
         await callback_query.answer()
 
-        parts = callback_query.data.split(":", 4)
-        if len(parts) < 5:
+        parts = callback_query.data.split(":")
+        if len(parts) < 2:
             await callback_query.message.answer("⚠️ Ungültige Callback-Daten.")
             return
-        address = parts[4]
+        address = parts[1]
         user_id = callback_query.from_user.id
 
         wallets = await get_wallets(user_id)
