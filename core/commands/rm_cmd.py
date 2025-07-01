@@ -22,7 +22,7 @@ async def remove_wallet_cmd(message: types.Message):
             await message.answer("💤 Du hast aktuell keine Wallets zum Entfernen.", parse_mode="HTML")
             return
 
-        keyboard = InlineKeyboardMarkup()
+        keyboard = InlineKeyboardMarkup(row_width=1)
         for entry in wallets:
             tag = entry.get("tag", "❓")
             wallet_addr = entry.get("wallet") or entry.get("address") or None
