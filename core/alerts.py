@@ -17,7 +17,8 @@ async def send_alert(bot: Bot, chat_id: int, text: str):
 
 async def notify_user(user_id: int, text: str):
     try:
-        from main import bot  # Lazy import für aiogram 2.x
+        # Lazy import: vermeidet zirkuläre Importe beim Bot-Setup
+        from main import bot  
         await bot.send_message(chat_id=user_id, text=text, parse_mode="HTML")
         logger.info(f"📬 Notified user {user_id}: {text}")
     except BadRequest as e:
