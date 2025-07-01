@@ -7,9 +7,8 @@ from core.database import get_wallets
 
 logger = logging.getLogger(__name__)
 
-# Callback-Handler für Start-Menu Buttons
 async def handle_start_buttons_callback(callback_query: types.CallbackQuery):
-    await callback_query.answer()  # Entfernt Lade-Spinner
+    await callback_query.answer()  # Lade-Spinner stoppen
 
     data = callback_query.data
 
@@ -21,55 +20,45 @@ async def handle_start_buttons_callback(callback_query: types.CallbackQuery):
             "/add 7g3n...ABcd MeineWallet",
             parse_mode="HTML"
         )
-
     elif data == "start:remove_wallet":
         await callback_query.message.answer(
             "Nutze <code>/rm</code>, um eine Wallet zu entfernen.",
             parse_mode="HTML"
         )
-
     elif data == "start:list_wallets":
         await callback_query.message.answer(
             "Nutze <code>/list</code>, um deine getrackten Wallets anzuzeigen.",
             parse_mode="HTML"
         )
-
     elif data == "start:add_profit":
         await callback_query.message.answer(
             "Nutze <code>/profit WALLET +10</code>, um Profit oder Verlust einzutragen.",
             parse_mode="HTML"
         )
-
     elif data == "start:finder_on":
         await callback_query.message.answer(
             "SmartFinder wird gestartet! Nutze /finder für Einstellungen.",
             parse_mode="HTML"
         )
-        # Hier kannst du optional direkt set_finder_mode setzen oder /finder triggern
-
     elif data == "start:finder_off":
         await callback_query.message.answer(
             "SmartFinder wird gestoppt! Nutze /finder für Einstellungen.",
             parse_mode="HTML"
         )
-        # Optional Finder Modus deaktivieren
-
     elif data == "start:coach":
         await callback_query.message.answer(
             "Nutze <code>/coach WALLET</code>, um eine SmartCoach-Analyse zu erhalten.",
             parse_mode="HTML"
         )
-
     elif data == "start:backup":
         await callback_query.message.answer(
             "Backup-Funktion ist noch in Arbeit.",
             parse_mode="HTML"
         )
-
     else:
         await callback_query.answer("Unbekannte Aktion.", show_alert=True)
 
-# Callback-Handler für SmartCoach unter Wallets
+
 async def handle_smartcoach_reply(callback_query: types.CallbackQuery):
     try:
         Bot.set_current(callback_query.bot)
