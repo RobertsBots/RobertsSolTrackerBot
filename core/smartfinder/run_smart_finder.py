@@ -16,10 +16,10 @@ headers = {
     "x-dune-api-key": DUNE_API_KEY
 }
 
-# Setze hier deine echten Dune Query-IDs für Moonbags und Scalping ein
+# Deine finalen Dune Query-IDs (ersetze hier durch deine eigenen)
 QUERY_IDS = {
-    "moon": "4632804",    # Beispiel-ID Moonbags (ersetze mit deiner echten!)
-    "scalp": "4632805"    # Beispiel-ID Scalping (ersetze mit deiner echten!)
+    "moon": "DEINE_MOONBAGS_QUERY_ID",
+    "scalp": "DEINE_SCALPING_BAGS_QUERY_ID"
 }
 
 async def fetch_wallets(bot: Bot, mode: str):
@@ -48,10 +48,10 @@ async def fetch_wallets(bot: Bot, mode: str):
 
             for row in rows:
                 try:
-                    winrate = float(row.get("winrate", 0))
-                    roi = float(row.get("roi", 0))
+                    winrate = float(row.get("winrate_pct", 0))
+                    roi = float(row.get("roi_pct", 0))
 
-                    # Beispiel Filter - anpassen nach Modus
+                    # Filter nach Modus anpassen (Winrate in %, ROI in %)
                     if winrate >= 70 and roi >= (10 if mode == "moon" else 5):
                         wallet_address = row.get("wallet", "")
                         if not wallet_address:
